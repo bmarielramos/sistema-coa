@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema COA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/classic/ckeditor.js"></script>
+
+<!-- ============================================================
+  REEMPLAZAR ESTAS DOS LÍNEAS CON TUS DATOS DE SUPABASE:
+  1. Ve a supabase.com > tu proyecto > Settings > API
+  2. Copia "Project URL" y "anon public key"
+============================================================ -->
+<script>
+const SUPABASE_URL = 'https://ibwazxjuqeububxbkcvd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlid2F6eGp1cWV1YnVieGJrY3ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MDAwMTcsImV4cCI6MjA5NjE3NjAxN30.CSSKhT-273Iyfh-182-V7hU93E87uv2zLtebGXKDuKs';
+
+// EmailJS - reemplazar con tus credenciales de emailjs.com
+const EMAILJS_SERVICE_ID  = 'service_ferarquimica';
+const EMAILJS_TEMPLATE_ID = 'template_4mi3s1h';
+const EMAILJS_PUBLIC_KEY  = 'sMR6zbwj-kT8gRAe-';
+</script>
+<!-- supabase-js no necesario, usamos fetch directo -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<style>
+/* ============ VARIABLES & RESET ============ */
+:root {
+  --bg: #f0eef8;
+  --bg2: #ffffff;
+  --bg3: #ede9f7;
+  --text: #1a1035;
+  --text2: #5a5275;
+  --border: #c9bfe8;
+  --accent: #7c3aed;
+  --accent2: #6d28d9;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --info: #0891b2;
+  --radius: 10px;
+  --shadow: 0 2px 12px rgba(124,58,237,.1);
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
+.dark {
+  --bg: #0f0b1a;
+  --bg2: #1a1528;
+  --bg3: #251e38;
+  --text: #e8e0f8;
+  --text2: #9b8fc0;
+  --border: #3d2f6e;
+  --shadow: 0 2px 12px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);transition:background .3s,color .3s;min-height:100vh}
+button{cursor:pointer;font-family:var(--font)}
+input,select,textarea{font-family:var(--font)}
+
+/* ============ LOGIN ============ */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0f0b1a 0%,#2d1b69 50%,#1a0f3a 100%);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:24px}
+#loginScreen.hidden{display:none}
+.lab-selector{display:flex;gap:16px;margin-bottom:8px}
+.lab-card{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:24px 32px;cursor:pointer;transition:all .25s;text-align:center;min-width:160px;color:#fff}
+.lab-card:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);transform:translateY(-2px)}
+.lab-card.selected{background:rgba(124,58,237,.3);border-color:#a78bfa}
+.lab-card img{width:80px;height:80px;object-fit:contain;margin-bottom:12px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3))}
+.lab-card .lab-name{font-size:14px;font-weight:600;opacity:.9}
+.login-box{background:rgba(255,255,255,.06);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:40px;width:360px}
+.login-title{color:#fff;font-size:20px;font-weight:700;text-align:center;margin-bottom:28px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;color:rgba(255,255,255,.7);font-size:13px;margin-bottom:6px}
+.login-input{width:100%;padding:12px 16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#fff;font-size:15px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:#a78bfa}
+.login-input::placeholder{color:rgba(255,255,255,.35)}
+.login-btn{width:100%;padding:13px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;margin-top:8px;transition:background .2s}
+.login-btn:hover{background:#6d28d9}
+.login-err{color:#f87171;font-size:13px;text-align:center;margin-top:10px;min-height:20px}
+
+/* ============ LAYOUT ============ */
+#app{display:none;flex-direction:column;min-height:100vh}
+#app.visible{display:flex}
+.topbar{background:linear-gradient(135deg,#7c3aed,#6d28d9);border-bottom:none;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(124,58,237,.3)}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.top-logo{height:38px;object-fit:contain}
+.top-title{font-size:16px;font-weight:700;color:#ffffff}
+.top-subtitle{font-size:12px;color:rgba(255,255,255,0.75)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.icon-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+.icon-btn:hover{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.5)}
+.lab-badge{background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.3)}
+
+/* ============ TABS ============ */
+.tabs-bar{background:linear-gradient(135deg,#6d28d9,#5b21b6);border-bottom:none;padding:0 16px;display:flex;gap:2px;overflow-x:auto;flex-shrink:0}
+.tabs-bar::-webkit-scrollbar{height:3px}
+.tabs-bar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.tab-btn{padding:10px 18px;border:none;background:transparent;color:rgba(255,255,255,0.7);font-size:13px;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:7px;position:relative}
+.tab-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
+.tab-btn.active{color:#fff;border-bottom-color:#fff;background:rgba(255,255,255,.15)}
+.tab-btn .tab-close{margin-left:6px;opacity:.5;font-size:11px;background:none;border:none;color:inherit;padding:0 2px;line-height:1;transition:opacity .2s}
+.tab-btn .tab-close:hover{opacity:1}
+.tab-content{flex:1;overflow-y:auto;padding:24px;max-width:1400px;margin:0 auto;width:100%}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ============ CARDS & SECTIONS ============ */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:20px}
+.card h3{font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.section-title{font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)}
+
+/* ============ FORMS ============ */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr}
+.form-row.single{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:13px;font-weight:500;color:var(--text2)}
+.fg input,.fg select,.fg textarea{padding:10px 13px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
+.fg textarea{resize:vertical;min-height:90px}
+@media(max-width:640px){.form-row,.form-row.triple{grid-template-columns:1fr}}
+
+/* ============ BUTTONS ============ */
+.btn{padding:9px 18px;border:none;border-radius:8px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#b91c1c}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-warning:hover{background:#b45309}
+.btn-info{background:var(--info);color:#fff}
+.btn-info:hover{background:#0e7490}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ============ TABLE ============ */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+table.data-table{width:100%;border-collapse:collapse;font-size:13px}
+table.data-table th{background:var(--bg3);padding:10px 14px;text-align:left;font-weight:600;color:var(--text2);white-space:nowrap;border-bottom:1px solid var(--border)}
+table.data-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+table.data-table tr:last-child td{border-bottom:none}
+table.data-table tr:hover td{background:var(--bg3)}
+table.data-table input[type=text]{padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);width:100%;min-width:80px;font-size:13px}
+table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-ok{background:#dcfce7;color:#166534}
+.badge-err{background:#fee2e2;color:#991b1b}
+.badge-pend{background:#fef3c7;color:#92400e}
+.badge-proc{background:#dbeafe;color:#1e40af}
+.dark .badge-ok{background:#14532d;color:#86efac}
+.dark .badge-err{background:#7f1d1d;color:#fca5a5}
+.dark .badge-pend{background:#78350f;color:#fcd34d}
+.dark .badge-proc{background:#1e3a8a;color:#93c5fd}
+
+/* ============ LOCKED DATA (COA header) ============ */
+.locked-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.locked-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px}
+.locked-item .lk-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.locked-item .lk-value{font-size:15px;font-weight:600;color:var(--text)}
+
+/* ============ MODAL ============ */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;min-width:340px;max-width:90vw;width:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:16px}
+.modal-footer{margin-top:20px;display:flex;justify-content:flex-end;gap:10px}
+
+/* ============ TOAST ============ */
+#toastContainer{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);min-width:240px;animation:slideIn .3s ease}
+.toast-ok{border-left:4px solid var(--success)}
+.toast-err{border-left:4px solid var(--danger)}
+.toast-info{border-left:4px solid var(--accent)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ============ LOADING ============ */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+#globalLoader{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:8888;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#globalLoader.on{display:flex}
+.loader-box{background:var(--bg2);border-radius:14px;padding:28px 40px;text-align:center;box-shadow:var(--shadow)}
+.loader-box p{margin-top:12px;font-size:14px;color:var(--text2)}
+
+/* ============ REFORMULACION PANEL ============ */
+.panel-ref{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:2px solid #f59e0b;border-radius:var(--radius);padding:16px;margin-bottom:20px}
+.dark .panel-ref{background:linear-gradient(135deg,#451a03,#78350f);border-color:#d97706}
+.panel-ref h4{color:#92400e;font-size:14px;font-weight:700;margin-bottom:10px}
+.dark .panel-ref h4{color:#fcd34d}
+
+/* ============ CALCULADORAS ============ */
+.calc-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.calc-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px}
+.calc-field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
+.calc-field input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;width:100%}
+.calc-field input:focus{border-color:var(--accent);outline:none}
+.calc-result{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;font-weight:600;color:var(--success);min-height:36px}
+
+/* ============ FLOATING CALCULATOR ============ */
+.float-calc-btn{position:fixed;bottom:24px;right:24px;z-index:400;width:52px;height:52px;background:var(--accent);color:#fff;border:none;border-radius:50%;font-size:20px;box-shadow:0 4px 16px rgba(37,99,235,.4);transition:all .2s}
+.float-calc-btn:hover{transform:scale(1.08);background:var(--accent2)}
+.float-calc{position:fixed;bottom:90px;right:24px;z-index:400;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;width:280px;box-shadow:0 8px 32px rgba(0,0,0,.2);display:none}
+.float-calc.open{display:block}
+.calc-display{background:var(--bg3);border-radius:8px;padding:12px 16px;font-size:22px;font-weight:700;text-align:right;margin-bottom:12px;min-height:50px;word-break:break-all;border:1px solid var(--border)}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.calc-btn{padding:12px;border:none;border-radius:8px;font-size:14px;font-weight:600;background:var(--bg3);color:var(--text);transition:background .15s}
+.calc-btn:hover{background:var(--border)}
+.calc-btn.op{background:var(--accent);color:#fff}
+.calc-btn.op:hover{background:var(--accent2)}
+.calc-btn.eq{background:var(--success);color:#fff;grid-column:span 2}
+.calc-btn.eq:hover{background:#15803d}
+.calc-btn.clr{background:var(--danger);color:#fff}
+.calc-btn.clr:hover{background:#b91c1c}
+
+/* ============ DISEÑADOR ============ */
+.designer-search{display:flex;gap:10px;margin-bottom:16px}
+.designer-search input{flex:1}
+.cert-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;align-items:center}
+.cert-row:last-child{border-bottom:none}
+.cert-row:hover{background:var(--bg3)}
+.ck-editor-wrap .ck-editor{border-radius:8px!important}
+.ck-editor-wrap .ck.ck-editor__main>.ck-editor__editable{min-height:400px;background:var(--bg3);color:var(--text)}
+.config-checks{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.config-checks label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:768px){
+  .tab-content{padding:14px}
+  .locked-grid{grid-template-columns:1fr 1fr}
+  .topbar-left .top-subtitle{display:none}
+  .cert-row{grid-template-columns:1fr 1fr;gap:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen">
+  <div style="text-align:center;color:#fff;margin-bottom:8px">
+    <div style="font-size:13px;opacity:.6;letter-spacing:.1em;text-transform:uppercase">Sistema de Control de Calidad</div>
+  </div>
+  <div style="text-align:center;color:rgba(255,255,255,.6);font-size:13px;margin-bottom:4px">Seleccione su laboratorio</div>
+  <div class="lab-selector" id="labSelector"></div>
+  <div class="login-box">
+    <div class="login-title" id="loginTitle">Iniciar Sesión</div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input class="login-input" id="loginUser" type="text" placeholder="Usuario" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input class="login-input" id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+  <div style="color:rgba(255,255,255,.3);font-size:11px">v2.0 — Sistema COA con Supabase</div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <img id="topLogo" src="" alt="logo" class="top-logo">
+      <div>
+        <div class="top-title" id="topTitle">Sistema COA</div>
+        <div class="top-subtitle">Certificados de Análisis</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="lab-badge" id="topLabBadge"></span>
+      <button class="icon-btn" onclick="toggleDark()" id="darkBtn" title="Modo oscuro"><i class="fas fa-moon"></i></button>
+      <button class="icon-btn" onclick="doLogout()" title="Cerrar sesión"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+  </div>
+
+  <!-- TABS BAR -->
+  <div class="tabs-bar" id="tabsBar">
+    <button class="tab-btn active" data-tab="inicio" onclick="switchTab('inicio',this)"><i class="fas fa-home"></i> Inicio</button>
+    <button class="tab-btn" data-tab="proceso" onclick="switchTab('proceso',this);loadProceso()"><i class="fas fa-clock"></i> En Proceso</button>
+    <button class="tab-btn" data-tab="buscar" onclick="switchTab('buscar',this)"><i class="fas fa-search"></i> Buscar</button>
+    <button class="tab-btn" data-tab="gestion" onclick="switchTab('gestion',this)"><i class="fas fa-cogs"></i> Gestión</button>
+    <button class="tab-btn" data-tab="disenio" onclick="switchTab('disenio',this)"><i class="fas fa-print"></i> Diseñar</button>
+    <button class="tab-btn" data-tab="config" onclick="switchTab('config',this)"><i class="fas fa-sliders-h"></i> Config</button>
+  </div>
+
+  <!-- TAB CONTENT -->
+  <div class="tab-content">
+
+    <!-- ===== INICIO ===== -->
+    <div class="tab-pane active" id="tab-inicio">
+      <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> Nuevo Certificado</h3>
+        <div class="form-row">
+          <div class="fg">
+            <label>Producto</label>
+            <select id="f-producto"><option value="">Cargando...</option></select>
+          </div>
+          <div class="fg">
+            <label>Lote</label>
+            <input type="text" id="f-lote" placeholder="Ej: LOTE-001" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label>Cantidad (Kg)</label>
+            <input type="number" id="f-cantidad" min="0" step="0.01">
+          </div>
+          <div class="fg">
+            <label>Cliente / Proveedor</label>
+            <input type="text" id="f-cliente" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label>Operador</label>
+            <input type="text" id="f-operador" style="text-transform:uppercase">
+          </div>
+          <div class="fg">
+            <label>Motivo del análisis</label>
+            <select id="f-motivo">
+              <option value="">Seleccione...</option>
+              <option>Control de calidad</option>
+              <option>Recepción de materia prima</option>
+              <option>Muestra para enviar</option>
+              <option>Otro motivo</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg" id="f-otro-group" style="display:none;margin-bottom:16px">
+          <label>Especifique el motivo</label>
+          <input type="text" id="f-otro" style="text-transform:uppercase">
+        </div>
+        <button class="btn btn-primary" onclick="iniciarCertificado()"><i class="fas fa-play-circle"></i> Iniciar Certificado</button>
+      </div>
+    </div>
+
+    <!-- ===== EN PROCESO ===== -->
+    <div class="tab-pane" id="tab-proceso">
+      <div class="card">
+        <h3><i class="fas fa-clock"></i> Certificados en Proceso</h3>
+        <div id="procesoContent"><div style="text-align:center;padding:30px"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ===== BUSCAR ===== -->
+    <div class="tab-pane" id="tab-buscar">
+      <div class="card">
+        <h3><i class="fas fa-search"></i> Buscar Certificados Finalizados</h3>
+        <div class="form-row">
+          <div class="fg">
+            <label>Producto</label>
+            <input type="text" id="b-producto" placeholder="Ej: HARINA DE TRIGO" style="text-transform:uppercase">
+          </div>
+          <div class="fg">
+            <label>Lote</label>
+            <input type="text" id="b-lote" placeholder="Ej: LOTE-001" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="buscarCerts()"><i class="fas fa-search"></i> Buscar</button>
+          <button class="btn btn-secondary" onclick="cargarUltimos()"><i class="fas fa-history"></i> Últimos 15</button>
+        </div>
+        <div id="buscarResults" style="margin-top:20px"></div>
+      </div>
+    </div>
+
+    <!-- ===== GESTIÓN ===== -->
+    <div class="tab-pane" id="tab-gestion">
+      <div class="card">
+        <h3><i class="fas fa-cogs"></i> Gestión de Parámetros</h3>
+        <div class="fg" style="max-width:500px;margin-bottom:16px">
+          <label>Producto</label>
+          <input type="text" id="g-producto" placeholder="Ej: HARINA DE TRIGO" style="text-transform:uppercase" maxlength="300">
+        </div>
+        <div id="g-analisis-container">
+          <div class="analisis-bloque" data-idx="0">
+            <div class="form-row">
+              <div class="fg">
+                <label>Análisis</label>
+                <input type="text" class="g-nombre" placeholder="Ej: pH (unidad)" maxlength="500">
+              </div>
+            </div>
+            <div class="form-row triple">
+              <div class="fg">
+                <label>Mínimo</label>
+                <input type="text" class="g-min" placeholder="Ej: 6.5 o N/A" maxlength="200">
+              </div>
+              <div class="fg">
+                <label>Máximo</label>
+                <input type="text" class="g-max" placeholder="Ej: 7.5 (opcional)" maxlength="200">
+              </div>
+              <div class="fg" style="justify-content:flex-end">
+                <button class="btn btn-danger btn-sm g-del" style="display:none;margin-top:20px" onclick="remBloque(this)"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-secondary" onclick="addBloque()"><i class="fas fa-plus"></i> Agregar Análisis</button>
+          <button class="btn btn-primary" onclick="guardarParametros()"><i class="fas fa-save"></i> Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DISEÑAR ===== -->
+    <div class="tab-pane" id="tab-disenio">
+      <div class="card">
+        <h3><i class="fas fa-palette"></i> Diseñar Certificado</h3>
+        <div class="designer-search">
+          <input type="text" id="d-search" placeholder="Buscar por ID, producto, lote...">
+          <button class="btn btn-primary" onclick="buscarParaDisenio()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <div id="d-results" style="margin-bottom:16px"></div>
+
+        <div id="d-editor-section" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <div style="font-weight:700;font-size:15px" id="d-editor-title">Editor</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <select id="d-tipo" class="fg" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
+                <option value="analisis">Certificado de Análisis</option>
+                <option value="rechazo">Informe de Rechazo</option>
+              </select>
+              <div class="config-checks">
+                <label><input type="checkbox" id="d-cliente" checked> Cliente</label>
+                <label><input type="checkbox" id="d-obs"> Observaciones</label>
+                <label><input type="checkbox" id="d-aclar" checked> Aclaraciones</label>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-sm" onclick="recargarEditor()"><i class="fas fa-sync"></i> Recargar</button>
+              <button class="btn btn-primary btn-sm" onclick="imprimirCert()"><i class="fas fa-print"></i> Imprimir</button>
+              <button class="btn btn-secondary btn-sm" onclick="cerrarEditor()"><i class="fas fa-arrow-left"></i> Volver</button>
+            </div>
+          </div>
+          <div class="ck-editor-wrap">
+            <div id="ck-editor-target"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CONFIG ===== -->
+    <div class="tab-pane" id="tab-config">
+      <div class="card">
+        <h3><i class="fas fa-sliders-h"></i> Configuración del Laboratorio</h3>
+        <div id="config-content">
+          <div class="form-row">
+            <div class="fg">
+              <label>Nombre del laboratorio</label>
+              <input type="text" id="cfg-nombre">
+            </div>
+            <div class="fg">
+              <label>URL del Logo</label>
+              <input type="text" id="cfg-logo" placeholder="https://...">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="fg">
+              <label>Dirección</label>
+              <input type="text" id="cfg-dir">
+            </div>
+            <div class="fg">
+              <label>Teléfono</label>
+              <input type="text" id="cfg-tel">
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:16px">
+            <label>Emails destino (separados por coma)</label>
+            <input type="text" id="cfg-email">
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+          <h4 style="margin-bottom:12px;font-size:14px;font-weight:600">Cambiar Credenciales</h4>
+          <div class="form-row">
+            <div class="fg">
+              <label>Nuevo Usuario</label>
+              <input type="text" id="cfg-user">
+            </div>
+            <div class="fg">
+              <label>Nueva Contraseña</label>
+              <input type="password" id="cfg-pass">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="guardarConfig()"><i class="fas fa-save"></i> Guardar Configuración</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COA TABS se insertan aquí dinámicamente -->
+
+  </div><!-- /tab-content -->
+</div><!-- /app -->
+
+<!-- ============ FLOATING CALCULATOR ============ -->
+<button class="float-calc-btn" onclick="toggleCalc()" title="Calculadora"><i class="fas fa-calculator"></i></button>
+<div class="float-calc" id="floatCalc">
+  <div class="calc-display" id="calcDisplay">0</div>
+  <div class="calc-grid">
+    <button class="calc-btn clr" onclick="calcAct('C')">C</button>
+    <button class="calc-btn" onclick="calcAct('CE')">CE</button>
+    <button class="calc-btn" onclick="calcAct('%')">%</button>
+    <button class="calc-btn op" onclick="calcAct('/')">/</button>
+    <button class="calc-btn" onclick="calcAct('7')">7</button>
+    <button class="calc-btn" onclick="calcAct('8')">8</button>
+    <button class="calc-btn" onclick="calcAct('9')">9</button>
+    <button class="calc-btn op" onclick="calcAct('*')">×</button>
+    <button class="calc-btn" onclick="calcAct('4')">4</button>
+    <button class="calc-btn" onclick="calcAct('5')">5</button>
+    <button class="calc-btn" onclick="calcAct('6')">6</button>
+    <button class="calc-btn op" onclick="calcAct('-')">−</button>
+    <button class="calc-btn" onclick="calcAct('1')">1</button>
+    <button class="calc-btn" onclick="calcAct('2')">2</button>
+    <button class="calc-btn" onclick="calcAct('3')">3</button>
+    <button class="calc-btn op" onclick="calcAct('+')">+</button>
+    <button class="calc-btn" onclick="calcAct('0')" style="grid-column:span 2">0</button>
+    <button class="calc-btn" onclick="calcAct('.')">.</button>
+    <button class="calc-btn eq" onclick="calcAct('=')">= </button>
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <h3 id="modalTitle">Confirmación</h3>
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="modalConfirmBtn" onclick="modalConfirm()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- GLOBAL LOADER -->
+<div id="globalLoader"><div class="loader-box"><div class="spinner" style="width:36px;height:36px;border-width:3px"></div><p id="loaderText">Procesando...</p></div></div>
+
+<!-- TOASTS -->
+<div id="toastContainer"></div>
+
+<script>
+// ============================================================
+// SUPABASE CLIENT - fetch directo (compatible con todas las versiones)
+// ============================================================
+const sb = {
+  _url: SUPABASE_URL,
+  _key: SUPABASE_KEY,
+  _headers: {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Prefer': 'return=representation'
+  },
+  from(table) {
+    return new SBQuery(this._url, this._key, this._headers, table);
+  }
+};
+
+class SBQuery {
+  constructor(url, key, headers, table) {
+    this._url = url;
+    this._headers = headers;
+    this._table = table;
+    this._filters = [];
+    this._selectCols = '*';
+    this._orderCol = null;
+    this._orderAsc = true;
+    this._limitN = null;
+    this._single = false;
+  }
+  select(cols = '*') { this._selectCols = cols; return this; }
+  eq(col, val) { this._filters.push(col + '=eq.' + val); return this; }
+  neq(col, val) { this._filters.push(col + '=neq.' + val); return this; }
+  ilike(col, val) { this._filters.push(col + '=ilike.' + val); return this; }
+  or(expr) { this._filters.push(`or=(${expr})`); return this; }
+  order(col, opts = {}) { this._orderCol = col; this._orderAsc = opts.ascending !== false; return this; }
+  limit(n) { this._limitN = n; return this; }
+  single() { this._single = true; return this; }
+  _buildUrl(method) {
+    let url = `${this._url}/rest/v1/${this._table}`;
+    const params = [];
+    if (method === 'GET' || method === 'DELETE') {
+      params.push('select=' + this._selectCols);
+      this._filters.forEach(f => params.push(f));
+      if (this._orderCol) params.push(`order=${this._orderCol}.${this._orderAsc ? 'asc' : 'desc'}`);
+      if (this._limitN) params.push(`limit=${this._limitN}`);
+    }
+    if (params.length) url += '?' + params.join('&');
+    return url;
+  }
+  async _run(method, body = null) {
+    const headers = { ...this._headers };
+    if (this._single) headers['Accept'] = 'application/vnd.pgrst.object+json';
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    try {
+      const res = await fetch(this._buildUrl(method), opts);
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) return { data: null, error: { message: data?.message || data?.hint || `HTTP ${res.status}` } };
+      return { data, error: null };
+    } catch(e) {
+      return { data: null, error: { message: e.message } };
+    }
+  }
+  insert(body) {
+    const q = new SBQuery(this._url, this._key, this._headers, this._table);
+    q._insertBody = body; q._mode = 'insert'; return q;
+  }
+  update(body) { this._updateBody = body; this._mode = 'update'; return this; }
+  delete() { this._mode = 'delete'; return this; }
+  then(resolve, reject) { return this._execute().then(resolve, reject); }
+  async _execute() {
+    if (this._mode === 'insert') {
+      const headers = { ...this._headers, 'Prefer': 'return=representation' };
+      const res = await fetch(`${this._url}/rest/v1/${this._table}`, { method: 'POST', headers, body: JSON.stringify(this._insertBody) });
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) return { data: null, error: { message: data?.message || `HTTP ${res.status}` } };
+      const result = Array.isArray(data) ? (this._single ? data[0] : data) : data;
+      return { data: result, error: null };
+    }
+    if (this._mode === 'update') {
+      let finalUrl = `${this._url}/rest/v1/${this._table}`;
+      const params = []; this._filters.forEach(f => params.push(f));
+      if (params.length) finalUrl += '?' + params.join('&');
+      const headers = { ...this._headers, 'Prefer': 'return=representation' };
+      const res = await fetch(finalUrl, { method: 'PATCH', headers, body: JSON.stringify(this._updateBody) });
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) return { data: null, error: { message: data?.message || `HTTP ${res.status}` } };
+      return { data, error: null };
+    }
+    if (this._mode === 'delete') {
+      let finalUrl = `${this._url}/rest/v1/${this._table}`;
+      const params = []; this._filters.forEach(f => params.push(f));
+      if (params.length) finalUrl += '?' + params.join('&');
+      const res = await fetch(finalUrl, { method: 'DELETE', headers: this._headers });
+      return { data: null, error: res.ok ? null : { message: `HTTP ${res.status}` } };
+    }
+    return this._run('GET');
+  }
+}
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let currentLab = null;
+let openCOAs = {};
+let calcExpr = '0';
+let ckEditorInst = null;
+let currentDesignData = null;
+let modalCb = null;
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  initDarkMode();
+  await renderLabSelector();
+  document.getElementById('loginUser').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
+  document.getElementById('loginPass').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
+  document.getElementById('f-motivo').addEventListener('change', function() {
+    document.getElementById('f-otro-group').style.display = this.value === 'Otro motivo' ? 'block' : 'none';
+  });
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+});
+
+// ============================================================
+// LABORATORIOS - SELECTOR LOGIN
+// ============================================================
+async function renderLabSelector() {
+  const _labRes = await fetch(`${SUPABASE_URL}/rest/v1/laboratorios?select=id,nombre,logo_url`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await _labRes.json();
+  const error = null;
+  if (error || !data) return;
+  const container = document.getElementById('labSelector');
+  container.innerHTML = '';
+  data.forEach(lab => {
+    const card = document.createElement('div');
+    card.className = 'lab-card';
+    card.dataset.id = lab.id;
+    card.innerHTML = `<img src="${lab.logo_url}" onerror="this.style.display='none'"><div class="lab-name">${lab.nombre}</div>`;
+    card.onclick = () => {
+      document.querySelectorAll('.lab-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('loginTitle').textContent = `${lab.nombre}`;
+    };
+    container.appendChild(card);
+  });
+  // auto-select first
+  container.firstChild && container.firstChild.click();
+}
+
+// ============================================================
+// LOGIN / LOGOUT
+// ============================================================
+async function doLogin() {
+  const selectedCard = document.querySelector('.lab-card.selected');
+  if (!selectedCard) { showErr('Seleccione un laboratorio'); return; }
+  const labId = selectedCard.dataset.id;
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  if (!user || !pass) { showErr('Ingrese usuario y contraseña'); return; }
+
+  const _lgRes = await fetch(`${SUPABASE_URL}/rest/v1/laboratorios?select=*&id=eq.${labId}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Accept': 'application/vnd.pgrst.object+json' } });
+  const data = await _lgRes.json();
+  const error = _lgRes.ok ? null : { message: 'Error ' + _lgRes.status };
+  if (error || !data) { showErr('Error al conectar con la base de datos'); return; }
+
+  if (data.usuario !== user || data.password_hash !== pass) {
+    showErr('Usuario o contraseña incorrectos');
+    document.getElementById('loginPass').value = '';
+    return;
+  }
+
+  currentLab = data;
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('topLogo').src = data.logo_url;
+  document.getElementById('topTitle').textContent = data.nombre;
+  document.getElementById('topLabBadge').textContent = data.id === 'ferarquimica' ? '🇦🇷 Argentina' : '🇵🇾 Paraguay';
+  await cargarProductosSelect();
+  loadConfig();
+}
+
+function showErr(msg) { document.getElementById('loginErr').textContent = msg; }
+
+function doLogout() {
+  currentLab = null; openCOAs = {};
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').textContent = '';
+  // Remove dynamic COA tabs
+  document.querySelectorAll('.tab-btn[data-coa]').forEach(b => b.remove());
+  document.querySelectorAll('.tab-pane[id^="tab-coa-"]').forEach(p => p.remove());
+}
+
+// ============================================================
+// DARK MODE
+// ============================================================
+function initDarkMode() {
+  if (localStorage.getItem('dark') === '1') { document.body.classList.add('dark'); document.getElementById('darkBtn').innerHTML = '<i class="fas fa-sun"></i>'; }
+}
+function toggleDark() {
+  const on = document.body.classList.toggle('dark');
+  localStorage.setItem('dark', on ? '1' : '0');
+  document.getElementById('darkBtn').innerHTML = `<i class="fas fa-${on ? 'sun' : 'moon'}"></i>`;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const pane = document.getElementById('tab-' + id);
+  if (pane) pane.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ============================================================
+// LOADING & TOAST
+// ============================================================
+function showLoader(msg = 'Procesando...') { document.getElementById('loaderText').textContent = msg; document.getElementById('globalLoader').classList.add('on'); }
+function hideLoader() { document.getElementById('globalLoader').classList.remove('on'); }
+function toast(msg, type = 'info') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  const icon = type === 'ok' ? '✓' : type === 'err' ? '✗' : 'ℹ';
+  t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function showModal(title, body, confirmCb, confirmText = 'Confirmar') {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalConfirmBtn').textContent = confirmText;
+  modalCb = confirmCb;
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+function modalConfirm() { const cb = modalCb; closeModal(); if (cb) cb(); }
+function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); modalCb = null; }
+
+// ============================================================
+// PRODUCTOS SELECT
+// ============================================================
+async function cargarProductosSelect() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/parametros?select=producto&laboratorio_id=eq.${currentLab.id}`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  const data = await res.json();
+  const select = document.getElementById('f-producto');
+  if (!data || data.length === 0) { select.innerHTML = '<option value="">Sin productos configurados</option>'; return; }
+  const productos = [...new Set(data.map(d => d.producto))].sort();
+  select.innerHTML = '<option value="">Seleccione producto...</option>' + productos.map(p => `<option>${p}</option>`).join('');
+}
+
+// ============================================================
+// INICIAR CERTIFICADO
+// ============================================================
+async function iniciarCertificado() {
+  const producto = document.getElementById('f-producto').value;
+  const lote = document.getElementById('f-lote').value.trim().toUpperCase();
+  const cantidad = document.getElementById('f-cantidad').value;
+  const cliente = document.getElementById('f-cliente').value.trim().toUpperCase();
+  const operador = document.getElementById('f-operador').value.trim().toUpperCase();
+  const motivo = document.getElementById('f-motivo').value;
+  const otroMotivo = document.getElementById('f-otro').value.trim().toUpperCase();
+
+  if (!producto || !lote || !cantidad || !cliente || !operador || !motivo) { toast('Complete todos los campos obligatorios', 'err'); return; }
+  if (motivo === 'Otro motivo' && !otroMotivo) { toast('Especifique el motivo', 'err'); return; }
+
+  // Check duplicado en proceso
+  const _exRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=id&laboratorio_id=eq.${currentLab.id}&producto=eq.${encodeURIComponent(producto)}&lote=eq.${encodeURIComponent(lote)}&estado=eq.EN PROCESO`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  const existing = await _exRes.json();
+  if (existing && existing.length > 0) { toast('Ya existe un certificado en proceso para este producto y lote', 'err'); return; }
+
+  showLoader('Creando certificado...');
+  const id = `COA-${currentLab.id.substring(0,3).toUpperCase()}-${Date.now()}`;
+  const _insRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ id, laboratorio_id: currentLab.id, producto, lote, cantidad: parseFloat(cantidad), cliente, operador, motivo, otro_motivo: otroMotivo, estado: 'EN PROCESO' })
+  });
+  const error = _insRes.ok ? null : { message: 'Error ' + _insRes.status };
+  if (error) { hideLoader(); toast('Error al crear certificado: ' + error.message, 'err'); return; }
+
+  // Cargar análisis desde parámetros
+  const _parRes = await fetch(`${SUPABASE_URL}/rest/v1/parametros?select=*&laboratorio_id=eq.${currentLab.id}&producto=eq.${encodeURIComponent(producto)}`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  const params = await _parRes.json();
+  if (params && params.length > 0) {
+    const analisisRows = params.map((p, i) => ({
+      certificado_id: id, orden: i + 1, nombre: p.analisis,
+      minimo: p.minimo, maximo: p.maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: false
+    }));
+    await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(analisisRows)
+    });
+  }
+
+  hideLoader();
+  const nombre = `${producto} - ${lote}`;
+  document.getElementById('f-lote').value = '';
+  document.getElementById('f-cantidad').value = '';
+  document.getElementById('f-cliente').value = '';
+  document.getElementById('f-operador').value = '';
+  document.getElementById('f-motivo').value = '';
+  document.getElementById('f-otro-group').style.display = 'none';
+  abrirCOATab(id, nombre, { producto, lote, cantidad, cliente, operador, motivo: motivo === 'Otro motivo' ? otroMotivo : motivo });
+  toast('Certificado creado', 'ok');
+}
+
+// ============================================================
+// ABRIR COA TAB
+// ============================================================
+async function abrirCOATab(id, nombre, datos = null) {
+  if (openCOAs[id]) {
+    const btn = document.querySelector(`.tab-btn[data-tab="tab-${id}"]`);
+    if (btn) { btn.click(); return; }
+  }
+
+  // Crear botón de tab
+  const tabBtn = document.createElement('button');
+  tabBtn.className = 'tab-btn';
+  tabBtn.dataset.tab = `tab-${id}`;
+  tabBtn.dataset.coa = id;
+  tabBtn.innerHTML = `<i class="fas fa-file-medical"></i> ${nombre.length > 22 ? nombre.substring(0,22)+'…' : nombre} <button class="tab-close" onclick="cerrarCOATab(event,'${id}')">×</button>`;
+  tabBtn.onclick = (e) => { if (!e.target.classList.contains('tab-close')) { switchTab('coa-' + id, tabBtn); } };
+  document.getElementById('tabsBar').appendChild(tabBtn);
+
+  // Crear pane
+  const pane = document.createElement('div');
+  pane.className = 'tab-pane';
+  pane.id = `tab-coa-${id}`;
+  pane.innerHTML = `<div style="text-align:center;padding:40px"><div class="spinner" style="width:36px;height:36px;border-width:3px"></div><p style="margin-top:12px;color:var(--text2)">Cargando certificado...</p></div>`;
+  document.querySelector('.tab-content').appendChild(pane);
+  openCOAs[id] = true;
+  switchTab('coa-' + id, tabBtn);
+
+  // Cargar datos completos
+  if (!datos) {
+    const _at2Res = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const _at2Data = await _at2Res.json();
+    datos = Array.isArray(_at2Data) ? _at2Data[0] : _at2Data;
+  }
+  const _xaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const analisis = await _xaRes.json();
+  const _xcRes = await fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const calcs = await _xcRes.json();
+  renderCOAPane(pane, id, datos, analisis || [], calcs || []);
+}
+
+// ============================================================
+// RENDER COA PANE
+// ============================================================
+function renderCOAPane(pane, id, datos, analisis, calcs) {
+  const motivo = datos.otro_motivo || datos.motivo || 'N/A';
+  const estado = datos.estado || 'EN PROCESO';
+  const finalizado = ['APROBADO','DESAPROBADO','FINALIZADO'].includes(estado);
+
+  pane.innerHTML = `
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+    <h3 style="margin:0"><i class="fas fa-file-medical"></i> ${datos.producto} — Lote: ${datos.lote}</h3>
+    <span class="badge ${estado==='APROBADO'?'badge-ok':estado==='DESAPROBADO'?'badge-err':'badge-proc'}">${estado}</span>
+  </div>
+
+  <div class="locked-grid" id="lk-${id}">
+    <div class="locked-item"><div class="lk-label">Cantidad</div><div class="lk-value" id="lk-cantidad-${id}">${datos.cantidad || 0} Kg</div></div>
+    <div class="locked-item"><div class="lk-label">Cliente / Proveedor</div><div class="lk-value" id="lk-cliente-${id}">${datos.cliente}</div></div>
+    <div class="locked-item"><div class="lk-label">Operador</div><div class="lk-value" id="lk-operador-${id}">${datos.operador}</div></div>
+    <div class="locked-item"><div class="lk-label">Motivo</div><div class="lk-value" id="lk-motivo-${id}">${motivo}</div></div>
+  </div>
+  ${!finalizado ? `<button class="btn btn-secondary btn-sm" onclick="modalModCabecera('${id}')" style="margin-bottom:20px"><i class="fas fa-edit"></i> Modificar cabecera</button>` : ''}
+
+  <h4 style="margin-bottom:12px;font-size:15px;font-weight:600"><i class="fas fa-flask"></i> Análisis Requeridos</h4>
+  <div class="table-wrap" style="margin-bottom:16px">
+    <table class="data-table" id="tbl-${id}">
+      <thead><tr><th>Análisis</th><th>Mínimo</th><th>Máximo</th><th>Resultado</th><th>Aclaración</th><th>Estado</th><th></th></tr></thead>
+      <tbody id="tbody-${id}"></tbody>
+    </table>
+  </div>
+  ${!finalizado ? `<button class="btn btn-secondary btn-sm" onclick="agregarAnalisisCustom('${id}')" style="margin-bottom:16px"><i class="fas fa-plus"></i> Agregar análisis</button>` : ''}
+
+  <div class="card" style="margin-bottom:16px">
+    <h4 style="font-size:14px;font-weight:600;margin-bottom:12px"><i class="fas fa-calculator"></i> Calculadoras</h4>
+    ${!finalizado ? `<div class="btn-group" style="margin-bottom:12px">
+      <button class="btn btn-info btn-sm" onclick="agregarCalc('${id}','ma')"><i class="fas fa-atom"></i> Materia Activa</button>
+      <button class="btn btn-info btn-sm" onclick="agregarCalc('${id}','ia')"><i class="fas fa-vial"></i> Índice Amino</button>
+      <button class="btn btn-info btn-sm" onclick="agregarCalc('${id}','cc')"><i class="fas fa-flask"></i> Concentración</button>
+      <button class="btn btn-success btn-sm" onclick="guardarCalcs('${id}')"><i class="fas fa-save"></i> Guardar calculadoras</button>
+    </div>` : ''}
+    <div id="calcs-${id}"></div>
+  </div>
+
+  <div class="fg" style="margin-bottom:20px">
+    <label>Observaciones</label>
+    <textarea id="obs-${id}" rows="4" placeholder="Observaciones..."${finalizado ? ' disabled' : ''}>${datos.observaciones || ''}</textarea>
+  </div>
+
+  ${!finalizado ? `
+  <div class="btn-group">
+    
+    <button class="btn btn-primary" onclick="finalizarCert('${id}')"><i class="fas fa-check-circle"></i> Finalizar Certificado</button>
+  </div>` : `
+  <div class="btn-group">
+    <button class="btn btn-info" onclick="enviarEmail('${id}')"><i class="fas fa-envelope"></i> Enviar por Email</button>
+  </div>`}
+</div>`;
+
+  renderAnalisisRows(id, analisis, finalizado);
+  renderCalcs(id, calcs, finalizado);
+}
+
+// ============================================================
+// RENDER ANÁLISIS ROWS
+// ============================================================
+function renderAnalisisRows(coaId, analisis, readOnly) {
+  const tbody = document.getElementById('tbody-' + coaId);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  analisis.forEach((a, idx) => {
+    const tr = document.createElement('tr');
+    const badgeClass = a.estado === 'APROBADO' ? 'badge-ok' : a.estado === 'DESAPROBADO' ? 'badge-err' : 'badge-pend';
+    tr.innerHTML = `
+      <td>${a.es_personalizado ? `<input type="text" value="${a.nombre}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre')" style="width:100%">` : a.nombre}</td>
+      <td>${a.es_personalizado ? `<input type="text" value="${a.minimo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'minimo')" style="width:70px">` : (a.minimo || '')}</td>
+      <td>${a.es_personalizado ? `<input type="text" value="${a.maximo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'maximo')" style="width:70px">` : (a.maximo || '')}</td>
+      <td><input type="text" value="${a.resultado||''}" ${readOnly?'disabled':''} data-aid="${a.id}" data-min="${a.minimo||''}" data-max="${a.maximo||''}" onchange="onResultadoChange(this,'${coaId}')" style="width:100%"></td>
+      <td><input type="text" value="${a.aclaracion||''}" ${readOnly?'disabled':''} data-aid="${a.id}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'aclaracion')" style="width:100%"></td>
+      <td><span class="badge ${badgeClass}" id="est-${a.id}">${a.estado || 'PENDIENTE'}</span></td>
+      <td>${(!readOnly && a.es_personalizado) ? `<button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)"><i class="fas fa-trash"></i></button>` : ''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// VERIFICAR ANÁLISIS (validación)
+// ============================================================
+function onResultadoChange(input, coaId) {
+  const valor = input.value.trim().toUpperCase();
+  const min = input.dataset.min;
+  const max = input.dataset.max;
+  const aid = input.dataset.aid;
+  const estado = calcularEstado(valor, min, max);
+  const badge = document.getElementById('est-' + aid);
+  if (badge) {
+    badge.textContent = estado;
+    badge.className = 'badge ' + (estado === 'APROBADO' ? 'badge-ok' : estado === 'DESAPROBADO' ? 'badge-err' : 'badge-pend');
+  }
+  input.value = valor;
+  autoSave(coaId);
+}
+
+function calcularEstado(valor, min, max) {
+  if (!valor) return 'PENDIENTE';
+  const aprobadas = ['OK','LÍNEA','LINEA','LIN','APTO','CUMPLE','NO APRECIABLE','NO APR','NO AP','APROBADO','CONFORME'];
+  if (aprobadas.includes(valor)) return 'APROBADO';
+  const limMin = (min || '').replace(/'/g, '');
+  const limMax = (max || '').replace(/'/g, '');
+  const esNum = v => v !== '' && !isNaN(parseFloat(v.replace(',', '.')));
+  if (esNum(limMin) && esNum(limMax)) {
+    if (!esNum(valor)) return 'DESAPROBADO';
+    const n = parseFloat(valor.replace(',', '.'));
+    const nMin = parseFloat(limMin.replace(',', '.'));
+    const nMax = parseFloat(limMax.replace(',', '.'));
+    return (n >= nMin && n <= nMax) ? 'APROBADO' : 'DESAPROBADO';
+  }
+  if (esNum(limMin) && !esNum(limMax)) {
+    if (!esNum(valor)) return 'DESAPROBADO';
+    return parseFloat(valor.replace(',', '.')) >= parseFloat(limMin.replace(',', '.')) ? 'APROBADO' : 'DESAPROBADO';
+  }
+  if (!esNum(limMin) && esNum(limMax)) {
+    if (!esNum(valor)) return 'DESAPROBADO';
+    return parseFloat(valor.replace(',', '.')) <= parseFloat(limMax.replace(',', '.')) ? 'APROBADO' : 'DESAPROBADO';
+  }
+  return 'DESAPROBADO';
+}
+
+// ============================================================
+// AUTO SAVE
+// ============================================================
+const autoSaveTimers = {};
+function autoSave(coaId) {
+  clearTimeout(autoSaveTimers[coaId]);
+  autoSaveTimers[coaId] = setTimeout(() => guardarBorrador(coaId), 1200);
+}
+
+async function guardarBorrador(coaId) {
+  const pane = document.getElementById('tab-coa-' + coaId);
+  if (!pane) return;
+  const obs = document.getElementById('obs-' + coaId)?.value || '';
+  const analisisInputs = pane.querySelectorAll('input[data-aid]');
+  await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${coaId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ observaciones: obs, fecha_ultima_modificacion: new Date().toISOString() })
+  });
+  const updates = [];
+  analisisInputs.forEach(input => {
+    if (input.dataset.aid && !input.closest('td').previousElementSibling?.querySelector('span.badge')) {
+      // resultado input
+    }
+  });
+  // Gather all resultado + aclaracion updates
+  const rows = pane.querySelectorAll(`#tbody-${coaId} tr`);
+  for (const row of rows) {
+    const resInput = row.querySelector('input[data-aid][data-min]');
+    const aclInputs = row.querySelectorAll('input[data-aid]');
+    const aclInput = aclInputs.length > 1 ? aclInputs[aclInputs.length - 1] : null;
+    if (!resInput) continue;
+    const aid = parseInt(resInput.dataset.aid);
+    if (!aid) continue;
+    const resultado = resInput.value.trim();
+    const aclaracion = aclInput ? aclInput.value.trim() : '';
+    const estado = calcularEstado(resultado.toUpperCase(), resInput.dataset.min, resInput.dataset.max);
+    updates.push(
+      fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?id=eq.${aid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ resultado, aclaracion, estado })
+      })
+    );
+  }
+  await Promise.all(updates);
+}
+
+async function updateAnalisisField(input, coaId, aid, field) {
+  const val = input.value.trim();
+  await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?id=eq.${aid}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ [field]: val })
+  });
+  autoSave(coaId);
+}
+
+// ============================================================
+// AGREGAR ANÁLISIS PERSONALIZADO
+// ============================================================
+async function agregarAnalisisCustom(coaId) {
+  const _orRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=orden&certificado_id=eq.${coaId}&order=orden.desc&limit=1`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await _orRes.json();
+  const nextOrden = data && data.length > 0 ? data[0].orden + 1 : 1;
+  const _naRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' },
+    body: JSON.stringify({ certificado_id: coaId, orden: nextOrden, nombre: 'Nuevo análisis', minimo: '', maximo: '', resultado: '', estado: 'PENDIENTE', es_personalizado: true })
+  });
+  const _naData = await _naRes.json();
+  const nuevo = Array.isArray(_naData) ? _naData[0] : _naData;
+  const tbody = document.getElementById('tbody-' + coaId);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="Nuevo análisis" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'nombre')" style="width:100%"></td>
+    <td><input type="text" value="" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'minimo')" style="width:70px"></td>
+    <td><input type="text" value="" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'maximo')" style="width:70px"></td>
+    <td><input type="text" value="" data-aid="${nuevo.id}" data-min="" data-max="" onchange="onResultadoChange(this,'${coaId}')" style="width:100%"></td>
+    <td><input type="text" value="" data-aid="${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'aclaracion')" style="width:100%"></td>
+    <td><span class="badge badge-pend" id="est-${nuevo.id}">PENDIENTE</span></td>
+    <td><button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${nuevo.id},this)"><i class="fas fa-trash"></i></button></td>`;
+  tbody.appendChild(tr);
+}
+
+async function eliminarAnalisis(coaId, aid, btn) {
+  await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?id=eq.${aid}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  btn.closest('tr').remove();
+}
+
+// ============================================================
+// MODIFICAR CABECERA
+// ============================================================
+function modalModCabecera(id) {
+  const cantidad = document.getElementById('lk-cantidad-' + id)?.textContent.replace(' Kg','') || '';
+  const cliente  = document.getElementById('lk-cliente-' + id)?.textContent || '';
+  const operador = document.getElementById('lk-operador-' + id)?.textContent || '';
+  const motivo   = document.getElementById('lk-motivo-' + id)?.textContent || '';
+  showModal('Modificar Cabecera', `
+    <div class="form-row"><div class="fg"><label>Cantidad</label><input type="number" id="mc-cant" value="${cantidad}"></div>
+    <div class="fg"><label>Cliente</label><input type="text" id="mc-cli" value="${cliente}" style="text-transform:uppercase"></div></div>
+    <div class="form-row"><div class="fg"><label>Operador</label><input type="text" id="mc-op" value="${operador}" style="text-transform:uppercase"></div>
+    <div class="fg"><label>Motivo</label><input type="text" id="mc-mot" value="${motivo}" style="text-transform:uppercase"></div></div>`,
+  async () => {
+    const updates = {
+      cantidad: parseFloat(document.getElementById('mc-cant').value),
+      cliente: document.getElementById('mc-cli').value.trim().toUpperCase(),
+      operador: document.getElementById('mc-op').value.trim().toUpperCase(),
+      motivo: document.getElementById('mc-mot').value.trim().toUpperCase()
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(updates)
+    });
+    document.getElementById('lk-cantidad-' + id).textContent = updates.cantidad + ' Kg';
+    document.getElementById('lk-cliente-' + id).textContent  = updates.cliente;
+    document.getElementById('lk-operador-' + id).textContent = updates.operador;
+    document.getElementById('lk-motivo-' + id).textContent   = updates.motivo;
+    toast('Cabecera actualizada', 'ok');
+  }, 'Guardar');
+}
+
+// ============================================================
+// FINALIZAR CERTIFICADO
+// ============================================================
+async function finalizarCert(coaId, forzar = false) {
+  console.log('🔵 finalizarCert START', coaId, 'forzar:', forzar);
+  
+  const hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+  const estadoFinal = forzar ? 'DESAPROBADO' : 'APROBADO';
+
+  // Si no se fuerza, verificar problemas
+  if (!forzar) {
+    console.log('🔵 Verificando análisis...');
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=nombre,estado&certificado_id=eq.${coaId}`, { headers: hdrs });
+      const analisis = await r.json();
+      console.log('🔵 Análisis obtenidos:', analisis?.length);
+      const problemas = (Array.isArray(analisis) ? analisis : []).filter(a => a.estado !== 'APROBADO');
+      if (problemas.length > 0) {
+        const lista = problemas.map(p => `<li><b>${p.nombre}</b>: ${p.estado || 'PENDIENTE'}</li>`).join('');
+        showModal('Análisis con problemas',
+          `<p>Los siguientes análisis no están aprobados:</p><ul style="margin:12px 0 0 16px">${lista}</ul><p style="margin-top:12px">¿Desea finalizar como <b>DESAPROBADO</b> igualmente?</p>`,
+          () => finalizarCert(coaId, true), 'Sí, Finalizar como DESAPROBADO');
+        return;
+      }
+    } catch(e) {
+      console.error('Error verificando análisis:', e);
+    }
+  }
+
+  console.log('🔵 Finalizando como:', estadoFinal);
+  showLoader('Finalizando...');
+
+  try {
+    // 1. Guardar observaciones rápido
+    const obsEl = document.getElementById('obs-' + coaId);
+    const obs = obsEl ? obsEl.value : '';
+    await Promise.race([
+      fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${coaId}`, {
+        method: 'PATCH',
+        headers: { ...hdrs, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ observaciones: obs, estado: estadoFinal, fecha_ultima_modificacion: new Date().toISOString() })
+      }),
+      new Promise(r => setTimeout(r, 4000))
+    ]);
+    console.log('🔵 PATCH certificado OK');
+
+    // 2. Guardar resultados de análisis
+    const pane = document.getElementById('tab-coa-' + coaId);
+    if (pane) {
+      const rows = pane.querySelectorAll(`#tbody-${coaId} tr`);
+      const saves = [];
+      rows.forEach(row => {
+        const resInput = row.querySelector('input[data-aid][data-min]');
+        if (!resInput) return;
+        const aid = parseInt(resInput.dataset.aid);
+        if (!aid) return;
+        const resultado = resInput.value.trim();
+        const estado = calcularEstado(resultado.toUpperCase(), resInput.dataset.min, resInput.dataset.max);
+        saves.push(fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?id=eq.${aid}`, {
+          method: 'PATCH',
+          headers: { ...hdrs, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ resultado, estado })
+        }));
+      });
+      await Promise.race([Promise.all(saves), new Promise(r => setTimeout(r, 4000))]);
+      console.log('🔵 Análisis guardados OK');
+    }
+
+    hideLoader();
+    toast(estadoFinal === 'APROBADO' ? '✅ Certificado APROBADO' : '⚠️ Certificado DESAPROBADO', estadoFinal === 'APROBADO' ? 'ok' : 'err');
+
+    // 3. Recargar pane
+    setTimeout(async () => {
+      const [cr, ar, ccr] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${coaId}`, { headers: hdrs }),
+        fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${coaId}&order=orden.asc`, { headers: hdrs }),
+        fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${coaId}`, { headers: hdrs })
+      ]);
+      const cd = await cr.json(); const ad = await ar.json(); const ccd = await ccr.json();
+      const certFinal = Array.isArray(cd) ? cd[0] : cd;
+      const pane2 = document.getElementById('tab-coa-' + coaId);
+      if (pane2 && certFinal) renderCOAPane(pane2, coaId, certFinal, ad || [], ccd || []);
+      console.log('🔵 Pane recargado OK, estado:', certFinal?.estado);
+    }, 500);
+
+  } catch(e) {
+    hideLoader();
+    console.error('❌ Error en finalizarCert:', e);
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+// ============================================================
+// REFORMULACIÓN
+// ============================================================
+async function iniciarReformulacion(origId) {
+  showModal('Crear Reformulación',
+    '<p>Se creará un nuevo certificado basado en este, con los mismos análisis. Los análisis desaprobados se marcarán para corrección.</p>',
+  async () => {
+    showLoader('Creando reformulación...');
+    const _rfcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${origId}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const _rfcData = await _rfcRes.json();
+    const orig = Array.isArray(_rfcData) ? _rfcData[0] : _rfcData;
+    const _rfaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${origId}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const analisis = await _rfaRes.json();
+    const newId = `COA-REF-${Date.now()}`;
+    await fetch(`${SUPABASE_URL}/rest/v1/certificados`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ id: newId, laboratorio_id: orig.laboratorio_id, producto: orig.producto, lote: orig.lote, cantidad: orig.cantidad, cliente: orig.cliente, operador: orig.operador, motivo: 'REFORMULACIÓN', otro_motivo: `Ref. ${origId}`, estado: 'EN PROCESO', reformulacion_de: origId })
+    });
+    const nuevosAnalisis = analisis.map(a => ({
+      certificado_id: newId, orden: a.orden, nombre: a.nombre,
+      minimo: a.minimo, maximo: a.maximo,
+      resultado: a.estado === 'DESAPROBADO' ? '' : a.resultado,
+      estado: a.estado === 'DESAPROBADO' ? 'PENDIENTE' : a.estado,
+      aclaracion: a.aclaracion, es_personalizado: a.es_personalizado
+    }));
+    await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(nuevosAnalisis)
+    });
+    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${origId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ estado: 'DESAPROBADO' })
+    });
+    hideLoader();
+    toast('Reformulación creada', 'ok');
+    abrirCOATab(newId, `${orig.producto} - ${orig.lote} (REF)`);
+  }, 'Crear Reformulación');
+}
+
+// ============================================================
+// CERRAR COA TAB
+// ============================================================
+function cerrarCOATab(e, id) {
+  e.stopPropagation();
+  document.querySelector(`.tab-btn[data-coa="${id}"]`)?.remove();
+  document.getElementById('tab-coa-' + id)?.remove();
+  delete openCOAs[id];
+  switchTab('inicio', document.querySelector('.tab-btn[data-tab="inicio"]'));
+}
+
+// ============================================================
+// EN PROCESO
+// ============================================================
+async function loadProceso() {
+  const div = document.getElementById('procesoContent');
+  div.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  const _lpRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&laboratorio_id=eq.${currentLab.id}&estado=eq.EN PROCESO&order=fecha.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await _lpRes.json();
+  if (!data || data.length === 0) { div.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No hay certificados en proceso</p>'; return; }
+  div.innerHTML = `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>ID</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Cliente</th><th>Operador</th><th>Fecha</th><th></th></tr></thead>
+    <tbody>${data.map(c => `<tr>
+      <td><code style="font-size:11px">${c.id}</code></td><td>${c.producto}</td><td>${c.lote}</td>
+      <td>${c.cantidad} Kg</td><td>${c.cliente}</td><td>${c.operador}</td>
+      <td>${new Date(c.fecha).toLocaleDateString()}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="abrirCOATab('${c.id}','${c.producto} - ${c.lote}')"><i class="fas fa-edit"></i> Continuar</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ============================================================
+// BUSCAR FINALIZADOS
+// ============================================================
+async function buscarCerts() {
+  const prod = document.getElementById('b-producto').value.trim().toUpperCase();
+  const lote = document.getElementById('b-lote').value.trim().toUpperCase();
+  if (!prod && !lote) { toast('Ingrese al menos un criterio', 'err'); return; }
+  showLoader('Buscando...');
+  const params = [`laboratorio_id=eq.${currentLab.id}`, `estado=neq.EN PROCESO`, `order=fecha.desc`, `limit=50`];
+  if (prod) params.push(`producto=ilike.*${prod}*`);
+  if (lote) params.push(`lote=ilike.*${lote}*`);
+  const url = `${SUPABASE_URL}/rest/v1/certificados?select=*&${params.join('&')}`;
+  const res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await res.json();
+  hideLoader();
+  renderBuscarResults(Array.isArray(data) ? data : []);
+}
+
+async function cargarUltimos() {
+  showLoader('Cargando...');
+  const _ulRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&laboratorio_id=eq.${currentLab.id}&estado=neq.EN PROCESO&order=fecha.desc&limit=15`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await _ulRes.json();
+  hideLoader();
+  renderBuscarResults(data || []);
+}
+
+function renderBuscarResults(data) {
+  const div = document.getElementById('buscarResults');
+  if (!data.length) { div.innerHTML = '<p style="color:var(--text2)">No se encontraron resultados</p>'; return; }
+  div.innerHTML = `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Pasado</th><th>ID</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+    <tbody>${data.map(c => {
+      const bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
+      return `<tr>
+        <td><input type="checkbox" ${c.pasado?'checked':''} onchange="togglePasado('${c.id}',this)"></td>
+        <td><code style="font-size:11px">${c.id}</code></td><td>${c.producto}</td><td>${c.lote}</td>
+        <td>${c.cantidad} Kg</td><td>${c.cliente}</td>
+        <td>${new Date(c.fecha).toLocaleDateString()}</td>
+        <td><span class="badge ${bc}">${c.estado}</span></td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="verCertFinalizado('${c.id}')"><i class="fas fa-eye"></i> Ver</button>
+          <button class="btn btn-info btn-sm" onclick="enviarEmail('${c.id}')"><i class="fas fa-envelope"></i></button>
+        </td></tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+async function togglePasado(certId, cb) {
+  await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${certId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ pasado: cb.checked })
+  });
+  toast(cb.checked ? 'Marcado como pasado' : 'Desmarcado', 'ok');
+}
+
+async function verCertFinalizado(id) {
+  showLoader('Cargando...');
+  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vcData = await _vcRes.json();
+  const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
+  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const analisis = await _vaRes.json();
+  hideLoader();
+  const bc = cert.estado==='APROBADO'?'badge-ok':cert.estado==='DESAPROBADO'?'badge-err':'badge-proc';
+  const tbody = (analisis||[]).map(a => {
+    const bc2 = a.estado==='APROBADO'?'badge-ok':a.estado==='DESAPROBADO'?'badge-err':'badge-pend';
+    return `<tr><td>${a.nombre}</td><td>${a.minimo||''}</td><td>${a.maximo||''}</td><td><b>${a.resultado||''}</b></td><td>${a.aclaracion||''}</td><td><span class="badge ${bc2}">${a.estado}</span></td></tr>`;
+  }).join('');
+  showModal(
+    `Certificado ${id}`,
+    `<span class="badge ${bc}" style="margin-bottom:12px;display:inline-block">${cert.estado}</span>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+      <div class="locked-item"><div class="lk-label">Producto</div><div class="lk-value">${cert.producto}</div></div>
+      <div class="locked-item"><div class="lk-label">Lote</div><div class="lk-value">${cert.lote}</div></div>
+      <div class="locked-item"><div class="lk-label">Cliente</div><div class="lk-value">${cert.cliente}</div></div>
+      <div class="locked-item"><div class="lk-label">Fecha</div><div class="lk-value">${new Date(cert.fecha).toLocaleDateString()}</div></div>
+    </div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+      <table class="data-table" style="min-width:600px;width:100%">
+        <thead><tr><th>Análisis</th><th>Min</th><th>Max</th><th>Resultado</th><th>Aclaración</th><th>Estado</th></tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>
+    ${cert.observaciones ? `<p style="margin-top:12px"><b>Observaciones:</b> ${cert.observaciones}</p>` : ''}`,
+    null, 'Cerrar'
+  );
+  document.getElementById('modalConfirmBtn').style.display = 'none';
+  setTimeout(() => document.getElementById('modalConfirmBtn').style.display = '', 100);
+}
+
+// ============================================================
+// GESTIÓN DE PARÁMETROS
+// ============================================================
+function addBloque() {
+  const c = document.getElementById('g-analisis-container');
+  const idx = c.querySelectorAll('.analisis-bloque').length;
+  const div = document.createElement('div');
+  div.className = 'analisis-bloque';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <div class="form-row"><div class="fg"><label>Análisis</label><input type="text" class="g-nombre" placeholder="Ej: pH (unidad)" maxlength="500"></div></div>
+    <div class="form-row triple">
+      <div class="fg"><label>Mínimo</label><input type="text" class="g-min" placeholder="Ej: 6.5 o N/A" maxlength="200"></div>
+      <div class="fg"><label>Máximo</label><input type="text" class="g-max" placeholder="Ej: 7.5 (opcional)" maxlength="200"></div>
+      <div class="fg" style="justify-content:flex-end"><button class="btn btn-danger btn-sm g-del" style="margin-top:20px" onclick="remBloque(this)"><i class="fas fa-trash"></i></button></div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">`;
+  c.appendChild(div);
+  actualizarBotonesDel();
+}
+
+function remBloque(btn) { btn.closest('.analisis-bloque').remove(); actualizarBotonesDel(); }
+function actualizarBotonesDel() {
+  const bloques = document.querySelectorAll('.analisis-bloque');
+  bloques.forEach(b => { const del = b.querySelector('.g-del'); if (del) del.style.display = bloques.length > 1 ? 'inline-flex' : 'none'; });
+}
+
+async function guardarParametros() {
+  const producto = document.getElementById('g-producto').value.trim().toUpperCase();
+  if (!producto) { toast('Ingrese el nombre del producto', 'err'); return; }
+  const bloques = document.querySelectorAll('.analisis-bloque');
+  const analisis = [];
+  bloques.forEach(b => {
+    const nombre = b.querySelector('.g-nombre')?.value.trim();
+    const minimo = b.querySelector('.g-min')?.value.trim();
+    const maximo = b.querySelector('.g-max')?.value.trim();
+    if (nombre && minimo) analisis.push({ laboratorio_id: currentLab.id, producto, analisis: nombre, minimo, maximo: maximo || null });
+  });
+  if (!analisis.length) { toast('Agregue al menos un análisis con nombre y mínimo', 'err'); return; }
+  showLoader('Guardando...');
+  const rows = analisis;
+  const _gpRes = await fetch(`${SUPABASE_URL}/rest/v1/parametros`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(rows)
+  });
+  const error = _gpRes.ok ? null : { message: 'Error al guardar: ' + _gpRes.status };
+  hideLoader();
+  if (error) { toast('Error: ' + error.message, 'err'); return; }
+  toast(`${analisis.length} análisis guardados para ${producto}`, 'ok');
+  document.getElementById('g-producto').value = '';
+  document.querySelectorAll('.analisis-bloque .g-nombre, .analisis-bloque .g-min, .analisis-bloque .g-max').forEach(i => i.value = '');
+  await cargarProductosSelect();
+}
+
+// ============================================================
+// CALCULADORAS EN COA
+// ============================================================
+function renderCalcs(coaId, calcs, readOnly) {
+  const container = document.getElementById('calcs-' + coaId);
+  if (!container) return;
+  container.innerHTML = '';
+  calcs.forEach(calc => renderCalcBlock(coaId, calc, readOnly));
+}
+
+function renderCalcBlock(coaId, calc, readOnly) {
+  const container = document.getElementById('calcs-' + coaId);
+  const div = document.createElement('div');
+  div.className = 'calc-block';
+  div.dataset.calcId = calc.id;
+  const campos = calc.campos || {};
+  if (calc.tipo === 'ma') {
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <input type="text" class="calc-nombre" placeholder="Nombre (ej: Materia Activa Lote X)" value="${calc.nombre||''}" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px" ${readOnly?'disabled':''}>
+        ${!readOnly?`<button class="btn btn-danger btn-sm" onclick="eliminarCalcBlock('${coaId}',${calc.id},this)"><i class="fas fa-times"></i></button>`:''}
+      </div>
+      <div class="calc-fields">
+        <div class="calc-field"><label>Peso Molecular</label><input type="text" class="cf-pm" value="${campos.pm||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Gramos muestra</label><input type="text" class="cf-gr" value="${campos.gr||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Conc. Hyamine</label><input type="text" class="cf-ch" value="${campos.ch||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Vol. Hyamine (ml)</label><input type="text" class="cf-vh" value="${campos.vh||''}" ${readOnly?'disabled':''}></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="calc-result" id="cr-${calc.id}">${calc.resultado||'—'}</div>
+        ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcMA(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
+      </div>`;
+  } else if (calc.tipo === 'ia') {
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <input type="text" class="calc-nombre" placeholder="Nombre (ej: Índice Amino)" value="${calc.nombre||''}" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px" ${readOnly?'disabled':''}>
+        ${!readOnly?`<button class="btn btn-danger btn-sm" onclick="eliminarCalcBlock('${coaId}',${calc.id},this)"><i class="fas fa-times"></i></button>`:''}
+      </div>
+      <div class="calc-fields">
+        <div class="calc-field"><label>Gramos muestra</label><input type="text" class="cf-gr" value="${campos.gr||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Vol. HCl (ml)</label><input type="text" class="cf-vh" value="${campos.vh||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Conc. HCl</label><input type="text" class="cf-ch" value="${campos.ch||''}" ${readOnly?'disabled':''}></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="calc-result" id="cr-${calc.id}">${calc.resultado||'—'}</div>
+        ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcIA(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
+      </div>`;
+  } else if (calc.tipo === 'cc') {
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <input type="text" class="calc-nombre" placeholder="Nombre (ej: Concentración)" value="${calc.nombre||''}" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px" ${readOnly?'disabled':''}>
+        ${!readOnly?`<button class="btn btn-danger btn-sm" onclick="eliminarCalcBlock('${coaId}',${calc.id},this)"><i class="fas fa-times"></i></button>`:''}
+      </div>
+      <div class="calc-fields">
+        <div class="calc-field"><label>Volumen a preparar (ml)</label><input type="text" class="cf-vol" value="${campos.vol||'100'}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Activo cantidad</label><input type="text" class="cf-act" value="${campos.act||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Unidad activo</label>
+          <select class="cf-uni" ${readOnly?'disabled':''}><option ${campos.uni==='g/L'?'selected':''}>g/L</option><option ${campos.uni==='%'?'selected':''}>%</option></select></div>
+        <div class="calc-field"><label>Pureza %</label><input type="text" class="cf-pur" value="${campos.pur||'100'}" ${readOnly?'disabled':''}></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <textarea class="calc-result" id="cr-${calc.id}" style="flex:1;height:80px;resize:vertical;font-size:13px" readonly>${calc.resultado||'—'}</textarea>
+        ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcCC(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
+      </div>`;
+  }
+  container.appendChild(div);
+}
+
+async function agregarCalc(coaId, tipo) {
+  const _xciRes = await fetch(`${SUPABASE_URL}/rest/v1/calculadoras`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' },
+    body: JSON.stringify({ certificado_id: coaId, tipo, numero: 1, nombre: '', campos: {}, resultado: '' })
+  });
+  const _xciData = await _xciRes.json();
+  const nuevaCalc = Array.isArray(_xciData) ? _xciData[0] : _xciData;
+  if (nuevaCalc) renderCalcBlock(coaId, nuevaCalc, false);
+}
+
+async function eliminarCalcBlock(coaId, calcId, btn) {
+  await fetch(`${SUPABASE_URL}/rest/v1/calculadoras?id=eq.${calcId}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  btn.closest('.calc-block').remove();
+}
+
+function calcMA(btn, coaId, calcId) {
+  const block = btn.closest('.calc-block');
+  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
+  const pm = pn(block.querySelector('.cf-pm')?.value);
+  const gr = pn(block.querySelector('.cf-gr')?.value);
+  const ch = pn(block.querySelector('.cf-ch')?.value);
+  const vh = pn(block.querySelector('.cf-vh')?.value);
+  if (!pm||!gr||!ch||!vh) { toast('Complete todos los campos', 'err'); return; }
+  const res = (ch * vh * pm) / gr;
+  document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
+}
+
+function calcIA(btn, coaId, calcId) {
+  const block = btn.closest('.calc-block');
+  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
+  const gr = pn(block.querySelector('.cf-gr')?.value);
+  const vh = pn(block.querySelector('.cf-vh')?.value);
+  const ch = pn(block.querySelector('.cf-ch')?.value);
+  if (!gr||!vh||!ch) { toast('Complete todos los campos', 'err'); return; }
+  const res = (vh * ch * 56.1) / gr;
+  document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
+}
+
+function calcCC(btn, coaId, calcId) {
+  const block = btn.closest('.calc-block');
+  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
+  const vol = pn(block.querySelector('.cf-vol')?.value);
+  const act = pn(block.querySelector('.cf-act')?.value);
+  const uni = block.querySelector('.cf-uni')?.value || 'g/L';
+  const pur = pn(block.querySelector('.cf-pur')?.value) || 100;
+  if (!vol||!act) { toast('Complete volumen y cantidad activo', 'err'); return; }
+  let gr = uni === 'g/L' ? (act * vol) / 1000 : (act / 100) * vol;
+  gr = gr / (pur / 100);
+  const res = `CONCENTRADO DE ${vol}ml\nACTIVO: ${act}${uni} (${pur}% pureza) → ${gr.toFixed(4)}g\nSolvente: A volumen ${vol}ml`;
+  const el = document.getElementById('cr-' + calcId);
+  if (el) el.value = res;
+}
+
+async function guardarCalcs(coaId) {
+  const container = document.getElementById('calcs-' + coaId);
+  if (!container) return;
+  showLoader('Guardando calculadoras...');
+  const blocks = container.querySelectorAll('.calc-block');
+  const updates = [];
+  
+  // Construir texto para observaciones
+  let textoCalcs = '';
+  
+  blocks.forEach(block => {
+    const calcId = block.dataset.calcId;
+    const nombre = block.querySelector('.calc-nombre')?.value || '';
+    const resultEl = block.querySelector(`#cr-${calcId}`);
+    const resultado = resultEl ? (resultEl.value || resultEl.textContent || '') : '';
+    let campos = {};
+    
+    // Determinar tipo de calculadora y armar campos + texto
+    if (block.querySelector('.cf-pm')) {
+      // Materia Activa
+      const pm = block.querySelector('.cf-pm')?.value || '';
+      const gr = block.querySelector('.cf-gr')?.value || '';
+      const ch = block.querySelector('.cf-ch')?.value || '';
+      const vh = block.querySelector('.cf-vh')?.value || '';
+      campos = { pm, gr, ch, vh };
+      if (pm || gr || ch || vh || resultado) {
+        textoCalcs += `
+${nombre || 'MATERIA ACTIVA'}:
+`;
+        if (pm) textoCalcs += `• PM: ${pm}
+`;
+        if (gr) textoCalcs += `• Gramos muestra: ${gr}g
+`;
+        if (ch) textoCalcs += `• Conc. Hyamine: ${ch}
+`;
+        if (vh) textoCalcs += `• Vol. Hyamine: ${vh}ml
+`;
+        if (resultado) textoCalcs += `• Resultado: ${resultado}
+`;
+      }
+    } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
+      // Índice Amino
+      const gr = block.querySelector('.cf-gr')?.value || '';
+      const vh = block.querySelector('.cf-vh')?.value || '';
+      const ch = block.querySelector('.cf-ch')?.value || '';
+      campos = { gr, vh, ch };
+      if (gr || vh || ch || resultado) {
+        textoCalcs += `
+${nombre || 'ÍNDICE AMINO'}:
+`;
+        if (gr) textoCalcs += `• Gramos muestra: ${gr}g
+`;
+        if (vh) textoCalcs += `• Vol. HCl: ${vh}ml
+`;
+        if (ch) textoCalcs += `• Conc. HCl: ${ch}
+`;
+        if (resultado) textoCalcs += `• Resultado: ${resultado}
+`;
+      }
+    } else if (block.querySelector('.cf-vol')) {
+      // Concentración
+      const vol = block.querySelector('.cf-vol')?.value || '';
+      const act = block.querySelector('.cf-act')?.value || '';
+      const uni = block.querySelector('.cf-uni')?.value || '';
+      const pur = block.querySelector('.cf-pur')?.value || '';
+      campos = { vol, act, uni, pur };
+      if (resultado) {
+        textoCalcs += `
+${nombre || 'CONCENTRACIÓN'}:
+${resultado}
+`;
+      }
+    }
+    
+    updates.push(fetch(`${SUPABASE_URL}/rest/v1/calculadoras?id=eq.${calcId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ nombre, campos, resultado })
+    }));
+  });
+  
+  await Promise.all(updates);
+  
+  // Copiar resultados a observaciones
+  if (textoCalcs) {
+    const obsEl = document.getElementById('obs-' + coaId);
+    if (obsEl) {
+      const textoActual = obsEl.value || '';
+      // Remover cálculos anteriores si existen
+      const marcador = '
+--- CÁLCULOS ---';
+      const idxMarcador = textoActual.indexOf(marcador);
+      const textoBase = idxMarcador >= 0 ? textoActual.substring(0, idxMarcador).trimEnd() : textoActual.trimEnd();
+      obsEl.value = textoBase + '
+--- CÁLCULOS ---' + textoCalcs;
+    }
+  }
+  
+  hideLoader();
+  toast('Calculadoras guardadas en observaciones', 'ok');
+}
+
+// ============================================================
+// FLOATING CALCULATOR
+// ============================================================
+function toggleCalc() { document.getElementById('floatCalc').classList.toggle('open'); }
+function calcAct(v) {
+  if (v === 'C') { calcExpr = '0'; }
+  else if (v === 'CE') { calcExpr = calcExpr.length > 1 ? calcExpr.slice(0,-1) : '0'; }
+  else if (v === '=') {
+    try { const r = new Function('return ' + calcExpr.replace(/×/g,'*').replace(/÷/g,'/'))(); calcExpr = String(parseFloat(r.toFixed(10))); } catch { calcExpr = 'Error'; }
+  } else if (v === '%') {
+    try { calcExpr = String(new Function('return (' + calcExpr + ')/100')()); } catch { calcExpr = 'Error'; }
+  } else {
+    if (calcExpr === '0' || calcExpr === 'Error') calcExpr = ['+','-','*','/'].includes(v) ? '0'+v : v;
+    else calcExpr += v;
+  }
+  document.getElementById('calcDisplay').textContent = calcExpr;
+}
+
+// ============================================================
+// DISEÑADOR - BUSCAR
+// ============================================================
+async function buscarParaDisenio() {
+  const term = document.getElementById('d-search').value.trim();
+  if (!term) { toast('Ingrese término de búsqueda', 'err'); return; }
+  showLoader('Buscando...');
+  const _dsUrl = `${SUPABASE_URL}/rest/v1/certificados?select=id,producto,lote,cliente,estado,fecha&laboratorio_id=eq.${currentLab.id}&or=(producto.ilike.*${term}*,lote.ilike.*${term}*,cliente.ilike.*${term}*,id.ilike.*${term}*)&limit=20`;
+  const _dsRes = await fetch(_dsUrl, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await _dsRes.json();
+  hideLoader();
+  const div = document.getElementById('d-results');
+  if (!data || !data.length) { div.innerHTML = '<p style="color:var(--text2)">Sin resultados</p>'; return; }
+  div.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Producto</th><th>Lote</th><th>Estado</th><th>Cliente</th><th>Fecha</th><th></th></tr></thead><tbody>
+    ${data.map(c => {
+      const bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
+      return `<tr><td>${c.producto}</td><td>${c.lote}</td><td><span class="badge ${bc}">${c.estado}</span></td><td>${c.cliente}</td><td>${new Date(c.fecha).toLocaleDateString()}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="cargarEnEditor('${c.id}')"><i class="fas fa-edit"></i> Editar</button></td></tr>`;
+    }).join('')}
+  </tbody></table></div>`;
+}
+
+async function cargarEnEditor(id) {
+  showLoader('Cargando en editor...');
+  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vcData = await _vcRes.json();
+  const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
+  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const analisis = await _vaRes.json();
+  hideLoader();
+  currentDesignData = { ...cert, analisis: analisis || [] };
+  document.getElementById('d-editor-title').textContent = `${cert.producto} — ${cert.lote}`;
+  document.getElementById('d-editor-section').style.display = 'block';
+  document.getElementById('d-results').style.display = 'none';
+  generarHTMLEditor();
+}
+
+function cerrarEditor() {
+  document.getElementById('d-editor-section').style.display = 'none';
+  document.getElementById('d-results').style.display = 'block';
+  if (ckEditorInst) { ckEditorInst.destroy(); ckEditorInst = null; }
+}
+
+function recargarEditor() { if (currentDesignData) generarHTMLEditor(); }
+
+async function generarHTMLEditor() {
+  if (!currentDesignData) return;
+  const d = currentDesignData;
+  const tipo = document.getElementById('d-tipo').value;
+  const mostrarCliente = document.getElementById('d-cliente').checked;
+  const mostrarObs = document.getElementById('d-obs').checked;
+  const mostrarAclar = document.getElementById('d-aclar').checked;
+  const fecha = new Date(d.fecha);
+  const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const fechaFab = `${meses[fecha.getMonth()]} DE ${fecha.getFullYear()}`;
+  const añoVenc = fecha.getFullYear() + 2;
+  const mesVencIdx = fecha.getMonth();
+  const fechaVenc = `${meses[mesVencIdx]} DE ${añoVenc}`;
+
+  let html = `
+  <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+    
+    <!-- CABECERA -->
+    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+      <img src="${currentLab?.logo_url || ''}" style="height:70px; object-fit:contain;" onerror="this.style.display='none'">
+      <h1 style="font-size:22px; font-weight:bold; text-transform:uppercase; text-align:center; flex:1; margin:0; color:#333;">
+        ${tipo === 'analisis' ? 'CERTIFICADO DE ANÁLISIS' : 'INFORME DE RECHAZO'}
+      </h1>
+      <div style="width:80px;"></div>
+    </div>
+
+    <!-- DATOS DEL PRODUCTO -->
+    <div style="margin-bottom: 20px; line-height: 2;">
+      ${tipo === 'rechazo' ? `
+        <p style="margin:4px 0"><strong>Proveedor:</strong> ${d.cliente || ''}</p>
+        <p style="margin:4px 0"><strong>Material:</strong> ${d.producto || ''}</p>
+        <p style="margin:4px 0"><strong>Lote:</strong> ${d.lote || ''}</p>
+        <p style="margin:4px 0"><strong>Fecha:</strong> ${new Date(d.fecha).toLocaleDateString()}</p>
+      ` : `
+        <p style="margin:4px 0"><strong>Producto:</strong> ${d.producto || ''}</p>
+        <p style="margin:4px 0"><strong>Lote:</strong> ${d.lote || ''}</p>
+        <p style="margin:4px 0"><strong>Fecha de fabricación:</strong> ${fechaFab}</p>
+        <p style="margin:4px 0"><strong>Fecha de vencimiento:</strong> ${fechaVenc}</p>
+        ${mostrarCliente && d.cliente ? `<p style="margin:4px 0"><strong>Cliente:</strong> ${d.cliente}</p>` : ''}
+      `}
+    </div>
+
+    <!-- TABLA DE ANÁLISIS -->
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin:20px 0;">
+      <thead>
+        <tr style="background:#f5f5f5;">
+          <th style="padding:10px 12px; border:1px solid #ccc; text-align:left; font-weight:bold;">Análisis</th>
+          <th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Especificación</th>
+          <th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Resultado</th>
+          ${mostrarAclar ? '<th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Aclaración</th>' : ''}
+          ${tipo === 'rechazo' ? '<th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Estado</th>' : ''}
+        </tr>
+      </thead>
+      <tbody>
+        ${d.analisis.map((a, i) => {
+          const spec = (a.minimo && a.maximo && a.minimo !== 'N/A' && a.maximo !== 'N/A')
+            ? `${a.minimo} - ${a.maximo}`
+            : (a.minimo && a.minimo !== 'N/A' ? a.minimo : (a.maximo && a.maximo !== 'N/A' ? `Max. ${a.maximo}` : ''));
+          const bg = i % 2 === 0 ? 'background:white' : 'background:#fafafa';
+          return `<tr style="${bg}">
+            <td style="padding:9px 12px; border:1px solid #ddd;">${a.nombre || ''}</td>
+            <td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-style:italic;">${spec}</td>
+            <td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-weight:bold;">${a.resultado || ''}</td>
+            ${mostrarAclar ? `<td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-size:11px; color:#555;">${a.aclaracion || ''}</td>` : ''}
+            ${tipo === 'rechazo' ? `<td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-weight:bold; color:${a.estado === 'DESAPROBADO' ? '#dc2626' : '#16a34a'};">${a.estado || ''}</td>` : ''}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+
+    ${mostrarObs && d.observaciones ? `
+    <div style="margin-top:15px; font-size:12px; color:#444; line-height:1.6;">
+      <strong>Observaciones:</strong> ${d.observaciones}
+    </div>` : ''}
+
+  </div>`;
+
+  const target = document.getElementById('ck-editor-target');
+  if (ckEditorInst) { await ckEditorInst.destroy(); ckEditorInst = null; }
+  target.innerHTML = '';
+  if (typeof ClassicEditor !== 'undefined') {
+    ClassicEditor.create(target, {
+      toolbar: ['bold','italic','underline','|','fontColor','|','bulletedList','numberedList','|','link','insertTable','|','alignment'],
+      language: 'es'
+    }).then(editor => { ckEditorInst = editor; editor.setData(html); }).catch(err => {
+      target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
+    });
+  } else {
+    target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
+  }
+}
+
+function imprimirCert() {
+  const d = currentDesignData;
+  if (!d) { toast('No hay certificado cargado', 'err'); return; }
+  const tipo = document.getElementById('d-tipo').value;
+  const titulo = tipo === 'analisis' ? 'CERTIFICADO DE ANÁLISIS' : 'INFORME DE RECHAZO';
+  const footer = tipo === 'analisis'
+    ? 'Los datos consignados en este certificado reflejan los resultados de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepción. ' + (currentLab?.nombre || '') + ' no se responsabiliza por el uso inadecuado que se haga del producto.'
+    : 'Los datos consignados en este certificado fueron suministrados por nuestro proveedor y solamente reflejan los resultados de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepción.';
+  
+  let contenido = '';
+  if (ckEditorInst) contenido = ckEditorInst.getData();
+  else { const ta = document.querySelector('#ck-editor-target textarea'); contenido = ta ? ta.value : ''; }
+  
+  const logoUrl = currentLab?.logo_url || '';
+  const labNombre = currentLab?.nombre?.toUpperCase() || '';
+  const labDir = currentLab?.direccion || '';
+  const labTel = currentLab?.telefono || '';
+  
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${titulo}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #333; background: white; }
+    .page { max-width: 800px; margin: 0 auto; padding: 30px 40px; position: relative; }
+    
+    /* MARCA DE AGUA */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.06;
+      z-index: -1;
+      width: 70%;
+      text-align: center;
+      pointer-events: none;
+    }
+    .watermark img { width: 100%; max-width: 500px; }
+    
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #333;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .header img { height: 70px; object-fit: contain; }
+    .header h1 { font-size: 20px; font-weight: bold; text-transform: uppercase; text-align: center; flex: 1; letter-spacing: 1px; }
+    .header-spacer { width: 80px; }
+    
+    /* DATOS */
+    .datos { margin-bottom: 20px; line-height: 2; font-size: 13px; }
+    .datos p { margin: 2px 0; }
+    .datos strong { font-weight: bold; }
+    
+    /* TABLA */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+    th { 
+      background: #f5f5f5; 
+      border: 1px solid #ccc; 
+      padding: 10px 12px; 
+      font-weight: bold; 
+      text-align: center;
+    }
+    th:first-child { text-align: left; }
+    td { border: 1px solid #ddd; padding: 9px 12px; }
+    td:first-child { text-align: left; }
+    td:not(:first-child) { text-align: center; }
+    tr:nth-child(even) td { background: #fafafa; }
+    .resultado { font-weight: bold; }
+    .aclaracion { font-size: 11px; color: #555; font-style: italic; }
+    
+    /* OBSERVACIONES */
+    .observaciones { 
+      margin-top: 15px; 
+      font-size: 11px; 
+      color: #444; 
+      line-height: 1.6;
+      padding: 10px;
+      border-left: 3px solid #ccc;
+    }
+    
+    /* FOOTER */
+    .footer {
+      margin-top: 50px;
+      border-top: 1px solid #ddd;
+      padding-top: 12px;
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .footer strong { display: block; margin-bottom: 3px; font-size: 11px; color: #333; }
+    
+    @media print {
+      @page { margin: 1.5cm; size: A4; }
+      body { font-size: 12pt; }
+      .watermark { opacity: 0.05; }
+    }
+  </style>
+</head>
+<body>
+  <!-- MARCA DE AGUA -->
+  <div class="watermark">
+    <img src="${logoUrl}" onerror="this.style.display='none'">
+  </div>
+  
+  <div class="page">
+    <!-- HEADER -->
+    <div class="header">
+      <img src="${logoUrl}" onerror="this.style.display='none'" alt="${labNombre}">
+      <h1>${titulo}</h1>
+      <div class="header-spacer"></div>
+    </div>
+    
+    <!-- CONTENIDO DEL EDITOR -->
+    ${contenido}
+    
+    <!-- FOOTER -->
+    <div class="footer">
+      <p style="margin-bottom:8px; font-size:11px; color:#555; text-align:justify; line-height:1.5;">
+        ${footer}
+      </p>
+      <strong>${labNombre}</strong>
+      ${labDir ? labDir + (labTel ? ' — ' + labTel : '') : labTel}
+    </div>
+  </div>
+  
+  <script>
+    window.onload = function() { window.print(); }
+  </script>
+</body>
+</html>`);
+  win.document.close();
+}
+
+// ============================================================
+// ENVIAR EMAIL
+// ============================================================
+async function enviarEmail(certId) {
+  showLoader('Cargando datos del certificado...');
+  const _emcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${certId}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _emcData = await _emcRes.json();
+  const cert = Array.isArray(_emcData) ? _emcData[0] : _emcData;
+  const _emaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${certId}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const analisis = await _emaRes.json();
+  hideLoader();
+  const emails = (currentLab.email_destino || '').split(',').map(e => e.trim());
+  const tablaHtml = (analisis||[]).map(a => `<tr><td>${a.nombre}</td><td style="text-align:center">${a.minimo||''} - ${a.maximo||''}</td><td style="text-align:center;font-weight:bold">${a.resultado||''}</td><td style="text-align:center;color:${a.estado==='APROBADO'?'green':'red'}">${a.estado||''}</td></tr>`).join('');
+  const htmlBody = `<h2>Certificado de Análisis — ${cert.producto}</h2>
+    <p><strong>ID:</strong> ${certId}</p><p><strong>Lote:</strong> ${cert.lote}</p>
+    <p><strong>Cliente:</strong> ${cert.cliente}</p><p><strong>Estado:</strong> ${cert.estado}</p>
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%">
+      <thead><tr style="background:#f0f0f0"><th>Análisis</th><th>Especificación</th><th>Resultado</th><th>Estado</th></tr></thead>
+      <tbody>${tablaHtml}</tbody></table>
+    <p style="margin-top:16px;font-size:12px;color:#666">Enviado desde Sistema COA — ${currentLab.nombre}</p>`;
+  showLoader('Enviando email...');
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: emails.join(','), subject: `COA ${cert.producto} - Lote ${cert.lote} — ${cert.estado}`,
+      html_content: htmlBody, lab_name: currentLab.nombre
+    });
+    hideLoader();
+    toast('Email enviado a: ' + emails.join(', '), 'ok');
+  } catch(err) {
+    hideLoader();
+    toast('Error al enviar email. Verificar configuración de EmailJS.', 'err');
+    console.error('EmailJS error:', err);
+  }
+}
+
+// ============================================================
+// CONFIG DEL LABORATORIO
+// ============================================================
+async function loadConfig() {
+  if (!currentLab) return;
+  document.getElementById('cfg-nombre').value = currentLab.nombre || '';
+  document.getElementById('cfg-logo').value = currentLab.logo_url || '';
+  document.getElementById('cfg-dir').value = currentLab.direccion || '';
+  document.getElementById('cfg-tel').value = currentLab.telefono || '';
+  document.getElementById('cfg-email').value = currentLab.email_destino || '';
+  document.getElementById('cfg-user').value = currentLab.usuario || '';
+}
+
+async function guardarConfig() {
+  const updates = {
+    nombre: document.getElementById('cfg-nombre').value.trim(),
+    logo_url: document.getElementById('cfg-logo').value.trim(),
+    direccion: document.getElementById('cfg-dir').value.trim(),
+    telefono: document.getElementById('cfg-tel').value.trim(),
+    email_destino: document.getElementById('cfg-email').value.trim(),
+  };
+  const newUser = document.getElementById('cfg-user').value.trim();
+  const newPass = document.getElementById('cfg-pass').value.trim();
+  if (newUser) updates.usuario = newUser;
+  if (newPass) updates.password_hash = newPass;
+  showLoader('Guardando configuración...');
+  const _cfgRes = await fetch(`${SUPABASE_URL}/rest/v1/laboratorios?id=eq.${currentLab.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' }  ,
+    body: JSON.stringify(updates)
+  });
+  const error = _cfgRes.ok ? null : { message: 'Error ' + _cfgRes.status };
+  hideLoader();
+  if (error) { toast('Error: ' + error.message, 'err'); return; }
+  currentLab = { ...currentLab, ...updates };
+  document.getElementById('topLogo').src = updates.logo_url;
+  document.getElementById('topTitle').textContent = updates.nombre;
+  document.getElementById('cfg-pass').value = '';
+  toast('Configuración guardada', 'ok');
+}
+</script>
+</body>
+</html>
