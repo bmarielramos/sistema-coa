@@ -319,7 +319,11 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
         <div class="form-row">
           <div class="fg">
             <label>Producto</label>
-            <select id="f-producto"><option value="">Cargando...</option></select>
+            <div style="position:relative">
+              <input type="text" id="f-producto-search" placeholder="Escribi para buscar..." maxlength="300" autocomplete="off">
+              <input type="hidden" id="f-producto" value="">
+              <div id="f-producto-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+            </div>
           </div>
           <div class="fg">
             <label>Lote</label>
@@ -837,22 +841,61 @@ function closeModal() { document.getElementById('modalBackdrop').classList.remov
 // ============================================================
 // PRODUCTOS SELECT
 // ============================================================
+var _productosLista = [];
+
 async function cargarProductosSelect() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/parametros?select=producto&laboratorio_id=eq.${currentLab.id}`, {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/parametros?select=producto&laboratorio_id=eq.' + currentLab.id, {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
   });
   const data = await res.json();
-  const select = document.getElementById('f-producto');
-  if (!data || data.length === 0) { select.innerHTML = '<option value="">Sin productos configurados</option>'; return; }
-  const productos = [...new Set(data.map(d => d.producto))].sort();
-  select.innerHTML = '<option value="">Seleccione producto...</option>' + productos.map(p => `<option>${p}</option>`).join('');
+  if (!data || !data.length) return;
+  const prods = [...new Set(data.map(function(d){ return d.producto; }))].sort();
+  _productosLista = prods;
+
+  // Setup search listener
+  const inp = document.getElementById('f-producto-search');
+  if (inp && !inp._listenerSet) {
+    inp._listenerSet = true;
+    inp.addEventListener('input', function() {
+      filtrarProductoNuevoCert(this.value);
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') document.getElementById('f-producto-dd').style.display = 'none';
+    });
+    document.addEventListener('click', function(e) {
+      if (e.target !== inp) document.getElementById('f-producto-dd').style.display = 'none';
+    });
+  }
+}
+
+function filtrarProductoNuevoCert(q) {
+  const dd = document.getElementById('f-producto-dd');
+  if (!q || !q.trim()) { dd.style.display = 'none'; return; }
+  const upper = q.toUpperCase();
+  const filtered = _productosLista.filter(function(p){ return p.toUpperCase().indexOf(upper) >= 0; });
+  if (!filtered.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = filtered.map(function(p){
+    return '<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" data-prod="' + p.replace(/"/g,'&quot;') + '">' + p + '</div>';
+  }).join('');
+  dd.style.display = 'block';
+  dd.querySelectorAll('div').forEach(function(item) {
+    item.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var nombre = this.dataset.prod;
+      document.getElementById('f-producto-search').value = nombre;
+      document.getElementById('f-producto').value = nombre;
+      dd.style.display = 'none';
+    });
+  });
 }
 
 // ============================================================
 // INICIAR CERTIFICADO
 // ============================================================
 async function iniciarCertificado() {
-  const producto = document.getElementById('f-producto').value;
+  var _pSearch = document.getElementById('f-producto-search');
+  var _pHidden = document.getElementById('f-producto');
+  const producto = (_pHidden && _pHidden.value) ? _pHidden.value.trim().toUpperCase() : (_pSearch ? _pSearch.value.trim().toUpperCase() : '');
   const lote = document.getElementById('f-lote').value.trim().toUpperCase();
   const cantidad = document.getElementById('f-cantidad').value;
   const cliente = document.getElementById('f-cliente').value.trim().toUpperCase();
@@ -1660,29 +1703,97 @@ function calcCC(btn, coaId, calcId) {
 }
 
 async function guardarCalcs(coaId) {
-  const container = document.getElementById('calcs-' + coaId);
+  var container = document.getElementById('calcs-' + coaId);
   if (!container) return;
   showLoader('Guardando calculadoras...');
-  const blocks = container.querySelectorAll('.calc-block');
-  const updates = [];
-  blocks.forEach(block => {
-    const calcId = block.dataset.calcId;
-    const nombre = block.querySelector('.calc-nombre')?.value || '';
-    const resultEl = block.querySelector(`#cr-${calcId}`);
-    const resultado = resultEl ? (resultEl.value || resultEl.textContent) : '';
-    let campos = {};
-    if (block.querySelector('.cf-pm')) campos = { pm: block.querySelector('.cf-pm')?.value, gr: block.querySelector('.cf-gr')?.value, ch: block.querySelector('.cf-ch')?.value, vh: block.querySelector('.cf-vh')?.value };
-    else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) campos = { gr: block.querySelector('.cf-gr')?.value, vh: block.querySelector('.cf-vh')?.value, ch: block.querySelector('.cf-ch')?.value };
-    else if (block.querySelector('.cf-vol')) campos = { vol: block.querySelector('.cf-vol')?.value, act: block.querySelector('.cf-act')?.value, uni: block.querySelector('.cf-uni')?.value, pur: block.querySelector('.cf-pur')?.value };
-    updates.push(fetch(`${SUPABASE_URL}/rest/v1/calculadoras?id=eq.${calcId}`, {
+  var blocks = container.querySelectorAll('.calc-block');
+  var updates = [];
+  var textoCalcs = '';
+
+  blocks.forEach(function(block) {
+    var calcId = block.dataset.calcId;
+    var nombre = block.querySelector('.calc-nombre') ? block.querySelector('.calc-nombre').value : '';
+    var resultEl = block.querySelector('#cr-' + calcId);
+    var resultado = resultEl ? (resultEl.value || resultEl.textContent || '') : '';
+    resultado = resultado.trim();
+    var campos = {};
+
+    if (block.querySelector('.cf-pm')) {
+      var pm = block.querySelector('.cf-pm') ? block.querySelector('.cf-pm').value : '';
+      var gr = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
+      var ch = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
+      var vh = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
+      campos = { pm: pm, gr: gr, ch: ch, vh: vh };
+      if (resultado) {
+        textoCalcs += '
+' + (nombre || 'MATERIA ACTIVA') + ':
+';
+        if (pm) textoCalcs += '  PM: ' + pm + '
+';
+        if (gr) textoCalcs += '  Gramos muestra: ' + gr + 'g
+';
+        if (ch) textoCalcs += '  Conc. Hyamine: ' + ch + '
+';
+        if (vh) textoCalcs += '  Vol. Hyamine: ' + vh + 'ml
+';
+        textoCalcs += '  Resultado: ' + resultado + '
+';
+      }
+    } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
+      var gr2 = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
+      var vh2 = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
+      var ch2 = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
+      campos = { gr: gr2, vh: vh2, ch: ch2 };
+      if (resultado) {
+        textoCalcs += '
+' + (nombre || 'INDICE AMINO') + ':
+';
+        if (gr2) textoCalcs += '  Gramos muestra: ' + gr2 + 'g
+';
+        if (vh2) textoCalcs += '  Vol. HCl: ' + vh2 + 'ml
+';
+        if (ch2) textoCalcs += '  Conc. HCl: ' + ch2 + '
+';
+        textoCalcs += '  Resultado: ' + resultado + '
+';
+      }
+    } else if (block.querySelector('.cf-vol')) {
+      var vol = block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '';
+      var act = block.querySelector('.cf-act') ? block.querySelector('.cf-act').value : '';
+      var uni = block.querySelector('.cf-uni') ? block.querySelector('.cf-uni').value : '';
+      var pur = block.querySelector('.cf-pur') ? block.querySelector('.cf-pur').value : '';
+      campos = { vol: vol, act: act, uni: uni, pur: pur };
+      if (resultado) textoCalcs += '
+' + (nombre || 'CONCENTRACION') + ':
+' + resultado + '
+';
+    }
+
+    updates.push(fetch(SUPABASE_URL + '/rest/v1/calculadoras?id=eq.' + calcId, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ nombre, campos, resultado })
+      body: JSON.stringify({ nombre: nombre, campos: campos, resultado: resultado })
     }));
   });
+
   await Promise.all(updates);
+
+  // Copiar a observaciones
+  if (textoCalcs) {
+    var obsEl = document.getElementById('obs-' + coaId);
+    if (obsEl) {
+      var marcador = '
+--- CALCULOS ---';
+      var textoActual = obsEl.value || '';
+      var idx = textoActual.indexOf(marcador);
+      var textoBase = idx >= 0 ? textoActual.substring(0, idx).trimEnd() : textoActual.trimEnd();
+      obsEl.value = textoBase + marcador + '
+' + textoCalcs;
+    }
+  }
+
   hideLoader();
-  toast('Calculadoras guardadas', 'ok');
+  toast('Calculadoras guardadas en observaciones', 'ok');
 }
 
 // ============================================================
