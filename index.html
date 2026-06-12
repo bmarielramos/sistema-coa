@@ -1703,6 +1703,7 @@ function calcCC(btn, coaId, calcId) {
 }
 
 async function guardarCalcs(coaId) {
+  var NL = NL;
   var container = document.getElementById('calcs-' + coaId);
   if (!container) return;
   showLoader('Guardando calculadoras...');
@@ -1725,12 +1726,12 @@ async function guardarCalcs(coaId) {
       var vh = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
       campos = { pm: pm, gr: gr, ch: ch, vh: vh };
       if (resultado) {
-        textoCalcs += String.fromCharCode(10) + (nombre || 'MATERIA ACTIVA') + ':' + String.fromCharCode(10);
-        if (pm) textoCalcs += '  PM: ' + pm + String.fromCharCode(10);
-        if (gr) textoCalcs += '  Gramos muestra: ' + gr + 'g' + String.fromCharCode(10);
-        if (ch) textoCalcs += '  Conc. Hyamine: ' + ch + String.fromCharCode(10);
-        if (vh) textoCalcs += '  Vol. Hyamine: ' + vh + 'ml' + String.fromCharCode(10);
-        textoCalcs += '  Resultado: ' + resultado + String.fromCharCode(10);
+        textoCalcs += NL + (nombre || 'MATERIA ACTIVA') + ':' + NL;
+        if (pm) textoCalcs += '  PM: ' + pm + NL;
+        if (gr) textoCalcs += '  Gramos muestra: ' + gr + 'g' + NL;
+        if (ch) textoCalcs += '  Conc. Hyamine: ' + ch + NL;
+        if (vh) textoCalcs += '  Vol. Hyamine: ' + vh + 'ml' + NL;
+        textoCalcs += '  Resultado: ' + resultado + NL;
       }
     } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
       var gr2 = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
@@ -1738,11 +1739,11 @@ async function guardarCalcs(coaId) {
       var ch2 = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
       campos = { gr: gr2, vh: vh2, ch: ch2 };
       if (resultado) {
-        textoCalcs += String.fromCharCode(10) + (nombre || 'INDICE AMINO') + ':' + String.fromCharCode(10);
-        if (gr2) textoCalcs += '  Gramos muestra: ' + gr2 + 'g' + String.fromCharCode(10);
-        if (vh2) textoCalcs += '  Vol. HCl: ' + vh2 + 'ml' + String.fromCharCode(10);
-        if (ch2) textoCalcs += '  Conc. HCl: ' + ch2 + String.fromCharCode(10);
-        textoCalcs += '  Resultado: ' + resultado + String.fromCharCode(10);
+        textoCalcs += NL + (nombre || 'INDICE AMINO') + ':' + NL;
+        if (gr2) textoCalcs += '  Gramos muestra: ' + gr2 + 'g' + NL;
+        if (vh2) textoCalcs += '  Vol. HCl: ' + vh2 + 'ml' + NL;
+        if (ch2) textoCalcs += '  Conc. HCl: ' + ch2 + NL;
+        textoCalcs += '  Resultado: ' + resultado + NL;
       }
     } else if (block.querySelector('.cf-vol')) {
       var vol = block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '';
@@ -1750,7 +1751,7 @@ async function guardarCalcs(coaId) {
       var uni = block.querySelector('.cf-uni') ? block.querySelector('.cf-uni').value : '';
       var pur = block.querySelector('.cf-pur') ? block.querySelector('.cf-pur').value : '';
       campos = { vol: vol, act: act, uni: uni, pur: pur };
-      if (resultado) textoCalcs += String.fromCharCode(10) + (nombre || 'CONCENTRACION') + ':' + String.fromCharCode(10) + resultado + String.fromCharCode(10);
+      if (resultado) textoCalcs += NL + (nombre || 'CONCENTRACION') + ':' + NL + resultado + NL;
     }
 
     updates.push(fetch(SUPABASE_URL + '/rest/v1/calculadoras?id=eq.' + calcId, {
@@ -1766,11 +1767,11 @@ async function guardarCalcs(coaId) {
   if (textoCalcs) {
     var obsEl = document.getElementById('obs-' + coaId);
     if (obsEl) {
-      var marcador = String.fromCharCode(10) + '--- CALCULOS ---';
+      var marcador = NL + '--- CALCULOS ---';
       var textoActual = obsEl.value || '';
       var idx = textoActual.indexOf(marcador);
       var textoBase = idx >= 0 ? textoActual.substring(0, idx).trimEnd() : textoActual.trimEnd();
-      obsEl.value = textoBase + marcador + String.fromCharCode(10) + textoCalcs;
+      obsEl.value = textoBase + marcador + NL + textoCalcs;
     }
   }
 
