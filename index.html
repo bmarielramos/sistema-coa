@@ -1726,6 +1726,7 @@ function renderCalcBlock(coaId, calc, readOnly) {
       + (!readOnly ? '<button class="btn btn-success btn-sm" style="white-space:nowrap" onclick="calcCC(this,\'' + coaId + '\',' + calc.id + ')"><i class="fas fa-calculator"></i> Calcular</button>' : '')
       + '</div>';
   }
+  if (container) container.appendChild(div);
 }
 
 function agregarComponenteCC(btn) {
