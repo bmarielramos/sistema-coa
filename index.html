@@ -2129,6 +2129,67 @@ async function buscarParaDisenio() {
     }).join('')}
   </tbody></table></div>`;
 }
+
+async function generarHTMLEditor() {
+  if (!currentDesignData) return;
+  const d = currentDesignData;
+  const tipo = document.getElementById('d-tipo').value;
+  const mostrarCliente = document.getElementById('d-cliente').checked;
+  const mostrarObs = document.getElementById('d-obs').checked;
+  const mostrarAclar = document.getElementById('d-aclar').checked;
+  const fecha = new Date(d.fecha);
+  const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const fechaFab = `${meses[fecha.getMonth()]} DE ${fecha.getFullYear()}`;
+  const fechaVenc = `${meses[new Date(fecha.setMonth(fecha.getMonth()+24)).getMonth()]} DE ${new Date(d.fecha).getFullYear() + 2}`;
+  let html = `<div style="margin:20px 0">
+    <p><strong>Producto:</strong> ${d.producto}</p>
+    <p><strong>Lote:</strong> ${d.lote}</p>
+    ${tipo==='analisis'?`<p><strong>Fecha de fabricación:</strong> ${fechaFab}</p><p><strong>Fecha de vencimiento:</strong> ${fechaVenc}</p>`:
+    `<p><strong>Proveedor:</strong> ${d.cliente}</p><p><strong>Fecha:</strong> ${new Date(d.fecha).toLocaleDateString()}</p>`}
+    ${mostrarCliente && tipo==='analisis' ? `<p><strong>Cliente:</strong> ${d.cliente}</p>` : ''}
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;margin:20px 0;border:1px solid #ccc">
+    <thead><tr style="background:#f8f9fa">
+      <th style="padding:10px;border:1px solid #ccc;text-align:left">Análisis</th>
+      <th style="padding:10px;border:1px solid #ccc;text-align:center">Especificación</th>
+      <th style="padding:10px;border:1px solid #ccc;text-align:center">Resultado</th>
+      ${mostrarAclar?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Aclaración</th>':''}
+      ${tipo==='rechazo'?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Estado</th>':''}
+    </tr></thead>
+    <tbody>${d.analisis.map((a,i) => {
+      const spec = a.minimo && a.maximo ? `${a.minimo} - ${a.maximo}` : (a.minimo||a.maximo||'N/A');
+      const bg = i%2===0?'background:transparent':'background:#f9f9f9';
+      return `<tr style="${bg}">
+        <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre}</td>
+        <td style="padding:8px;border:1px solid #ccc;text-align:center;font-family:monospace">${spec}</td>
+        <td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold">${a.resultado||''}</td>
+        ${mostrarAclar?`<td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:11px">${a.aclaracion||''}</td>`:''}
+        ${tipo==='rechazo'?`<td style="padding:8px;border:1px solid #ccc;text-align:center;color:${a.estado==='DESAPROBADO'?'#dc2626':'#16a34a'};font-weight:bold">${a.estado||''}</td>`:''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table>
+  ${mostrarObs && d.observaciones ? `<p><strong>Observaciones:</strong> ${d.observaciones}</p>` : ''}`;
+
+  const target = document.getElementById('ck-editor-target');
+  if (ckEditorInst) { await ckEditorInst.destroy(); ckEditorInst = null; }
+  target.innerHTML = '';
+  if (typeof ClassicEditor !== 'undefined') {
+    ClassicEditor.create(target, {
+      toolbar: ['bold','italic','underline','|','fontColor','|','bulletedList','numberedList','|','link','insertTable','|','alignment'],
+      language: 'es'
+    }).then(editor => { ckEditorInst = editor; editor.setData(html); }).catch(err => {
+      target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
+    });
+  } else {
+    target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
+  }
+}
+function cerrarEditor() {
+  document.getElementById('d-editor-section').style.display = 'none';
+  document.getElementById('d-results').style.display = 'block';
+  if (ckEditorInst) { ckEditorInst.destroy(); ckEditorInst = null; }
+}
+function recargarEditor() { if (currentDesignData) generarHTMLEditor(); }
 </script>
 </body>
 </html>
