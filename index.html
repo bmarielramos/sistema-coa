@@ -542,27 +542,36 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
 <!-- ============ FLOATING CALCULATOR ============ -->
 <button class="float-calc-btn" onclick="toggleCalc()" title="Calculadora"><i class="fas fa-calculator"></i></button>
 <div class="float-calc" id="floatCalc">
-  <div class="calc-display" id="calcDisplay">0</div>
-  <div class="calc-grid">
-    <button class="calc-btn clr" onclick="calcAct('C')">C</button>
-    <button class="calc-btn" onclick="calcAct('CE')">CE</button>
-    <button class="calc-btn" onclick="calcAct('%')">%</button>
-    <button class="calc-btn op" onclick="calcAct('/')">/</button>
-    <button class="calc-btn" onclick="calcAct('7')">7</button>
-    <button class="calc-btn" onclick="calcAct('8')">8</button>
-    <button class="calc-btn" onclick="calcAct('9')">9</button>
-    <button class="calc-btn op" onclick="calcAct('*')">×</button>
-    <button class="calc-btn" onclick="calcAct('4')">4</button>
-    <button class="calc-btn" onclick="calcAct('5')">5</button>
-    <button class="calc-btn" onclick="calcAct('6')">6</button>
-    <button class="calc-btn op" onclick="calcAct('-')">−</button>
-    <button class="calc-btn" onclick="calcAct('1')">1</button>
-    <button class="calc-btn" onclick="calcAct('2')">2</button>
-    <button class="calc-btn" onclick="calcAct('3')">3</button>
-    <button class="calc-btn op" onclick="calcAct('+')">+</button>
-    <button class="calc-btn" onclick="calcAct('0')" style="grid-column:span 2">0</button>
-    <button class="calc-btn" onclick="calcAct('.')">.</button>
-    <button class="calc-btn eq" onclick="calcAct('=')">= </button>
+  <div style="padding:10px 12px 6px;font-size:12px;font-weight:600;color:var(--text2);display:flex;justify-content:space-between;align-items:center">
+    <span>Calculadora</span>
+    <button onclick="toggleCalc()" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer">×</button>
+  </div>
+  <div style="padding:0 12px 8px">
+    <input type="text" id="calcDisplay" value="" 
+      style="width:100%;padding:10px 12px;font-size:20px;font-family:monospace;text-align:right;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);outline:none"
+      onkeydown="calcKeydown(event)"
+      placeholder="0">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">
+      <button class="calc-btn clr" onclick="calcClear()">C</button>
+      <button class="calc-btn" onclick="calcBackspace()">⌫</button>
+      <button class="calc-btn" onclick="calcInsert('%')">%</button>
+      <button class="calc-btn op" onclick="calcInsert('/')">÷</button>
+      <button class="calc-btn" onclick="calcInsert('7')">7</button>
+      <button class="calc-btn" onclick="calcInsert('8')">8</button>
+      <button class="calc-btn" onclick="calcInsert('9')">9</button>
+      <button class="calc-btn op" onclick="calcInsert('*')">×</button>
+      <button class="calc-btn" onclick="calcInsert('4')">4</button>
+      <button class="calc-btn" onclick="calcInsert('5')">5</button>
+      <button class="calc-btn" onclick="calcInsert('6')">6</button>
+      <button class="calc-btn op" onclick="calcInsert('-')">−</button>
+      <button class="calc-btn" onclick="calcInsert('1')">1</button>
+      <button class="calc-btn" onclick="calcInsert('2')">2</button>
+      <button class="calc-btn" onclick="calcInsert('3')">3</button>
+      <button class="calc-btn op" onclick="calcInsert('+')">+</button>
+      <button class="calc-btn" onclick="calcInsert('0')" style="grid-column:span 2">0</button>
+      <button class="calc-btn" onclick="calcInsert('.')">.</button>
+      <button class="calc-btn eq" onclick="calcEqual()">=</button>
+    </div>
   </div>
 </div>
 
@@ -693,7 +702,53 @@ class SBQuery {
 // ============================================================
 let currentLab = null;
 let openCOAs = {};
-let calcExpr = '0';
+// Calculadora flotante - nueva version con input editable
+function toggleCalc() {
+  var c = document.getElementById('floatCalc');
+  c.style.display = c.style.display === 'block' ? 'none' : 'block';
+  if (c.style.display === 'block') {
+    setTimeout(function(){ var d = document.getElementById('calcDisplay'); if(d) d.focus(); }, 50);
+  }
+}
+function calcClear() {
+  var inp = document.getElementById('calcDisplay');
+  if (inp) { inp.value = ''; inp.focus(); }
+}
+function calcBackspace() {
+  var inp = document.getElementById('calcDisplay');
+  if (!inp) return;
+  var s = inp.selectionStart, e = inp.selectionEnd;
+  if (s !== e) { inp.value = inp.value.slice(0,s) + inp.value.slice(e); inp.setSelectionRange(s,s); }
+  else if (s > 0) { inp.value = inp.value.slice(0,s-1) + inp.value.slice(s); inp.setSelectionRange(s-1,s-1); }
+  inp.focus();
+}
+function calcInsert(v) {
+  var inp = document.getElementById('calcDisplay');
+  if (!inp) return;
+  var s = inp.selectionStart, e = inp.selectionEnd;
+  inp.value = inp.value.slice(0,s) + v + inp.value.slice(e);
+  inp.setSelectionRange(s+1,s+1);
+  inp.focus();
+}
+function calcEqual() {
+  var inp = document.getElementById('calcDisplay');
+  if (!inp) return;
+  var expr = inp.value.replace(/,/g,'.').replace(/x/gi,'*').replace(/÷/g,'/').replace(/×/g,'*');
+  try {
+    var result = new Function('return (' + expr + ')')();
+    if (typeof result === 'number' && isFinite(result)) {
+      inp.value = parseFloat(result.toFixed(10)).toString();
+    }
+  } catch(e) {
+    inp.style.borderColor = '#dc2626';
+    setTimeout(function(){ inp.style.borderColor = ''; }, 800);
+  }
+  inp.focus();
+}
+function calcKeydown(e) {
+  if (e.key === 'Enter') { e.preventDefault(); calcEqual(); }
+  if (e.key === 'Escape') { toggleCalc(); }
+}
 let ckEditorInst = null;
 let currentDesignData = null;
 let modalCb = null;
@@ -1625,276 +1680,116 @@ function renderCalcBlock(coaId, calc, readOnly) {
         ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcIA(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
       </div>`;
   } else if (calc.tipo === 'cc') {
-    div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <input type="text" class="calc-nombre" placeholder="Nombre (ej: Concentración)" value="${calc.nombre||''}" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px" ${readOnly?'disabled':''}>
-        ${!readOnly?`<button class="btn btn-danger btn-sm" onclick="eliminarCalcBlock('${coaId}',${calc.id},this)"><i class="fas fa-times"></i></button>`:''}
-      </div>
-      <div class="calc-fields">
-        <div class="calc-field"><label>Volumen a preparar (ml)</label><input type="text" class="cf-vol" value="${campos.vol||'100'}" ${readOnly?'disabled':''}></div>
-        <div class="calc-field"><label>Activo cantidad</label><input type="text" class="cf-act" value="${campos.act||''}" ${readOnly?'disabled':''}></div>
-        <div class="calc-field"><label>Unidad activo</label>
-          <select class="cf-uni" ${readOnly?'disabled':''}><option ${campos.uni==='g/L'?'selected':''}>g/L</option><option ${campos.uni==='%'?'selected':''}>%</option></select></div>
-        <div class="calc-field"><label>Pureza %</label><input type="text" class="cf-pur" value="${campos.pur||'100'}" ${readOnly?'disabled':''}></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <textarea class="calc-result" id="cr-${calc.id}" style="flex:1;height:80px;resize:vertical;font-size:13px" readonly>${calc.resultado||'—'}</textarea>
-        ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcCC(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
-      </div>`;
+    // Build components from saved campos
+    var compList = [];
+    if (campos.componentes) {
+      try { compList = JSON.parse(campos.componentes); } catch(e) {}
+    }
+    if (!compList.length) compList = [{ tipo: 'Activo', nombre: '', cantidad: '', unidad: '%', pureza: '100' }];
+
+    var compHTML = '';
+    compList.forEach(function(comp, ci) {
+      compHTML += '<div class="cc-comp-row" data-ci="' + ci + '" style="display:grid;grid-template-columns:auto 1fr auto auto auto auto;gap:6px;align-items:center;margin-bottom:6px">';
+      compHTML += '<select class="cc-tipo" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px" ' + (readOnly ? 'disabled' : '') + '>';
+      ['Activo','Emulsionante','Solvente','Otro'].forEach(function(t) {
+        compHTML += '<option' + (comp.tipo === t ? ' selected' : '') + '>' + t + '</option>';
+      });
+      compHTML += '</select>';
+      compHTML += '<input type="text" class="cc-nombre" placeholder="Nombre del componente" value="' + (comp.nombre||'') + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px" ' + (readOnly ? 'disabled' : '') + '>';
+      compHTML += '<input type="text" class="cc-cant" placeholder="Cantidad" value="' + (comp.cantidad||'') + '" style="width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px" ' + (readOnly ? 'disabled' : '') + '>';
+      compHTML += '<select class="cc-unidad" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px" ' + (readOnly ? 'disabled' : '') + '>';
+      ['%','g/L','g','ml'].forEach(function(u) {
+        compHTML += '<option' + (comp.unidad === u ? ' selected' : '') + '>' + u + '</option>';
+      });
+      compHTML += '</select>';
+      compHTML += '<input type="text" class="cc-pureza" placeholder="Pureza%" value="' + (comp.pureza||'') + '" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px" title="Pureza % (solo activos)" ' + (readOnly ? 'disabled' : '') + '>';
+      if (!readOnly) {
+        compHTML += '<button onclick="eliminarComponenteCC(this)" style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px">×</button>';
+      }
+      compHTML += '</div>';
+    });
+
+    div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      + '<input type="text" class="calc-nombre" placeholder="Nombre del concentrado" value="' + (calc.nombre||'') + '" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px" ' + (readOnly ? 'disabled' : '') + '>'
+      + (!readOnly ? '<button class="btn btn-danger btn-sm" onclick="eliminarCalcBlock(\'' + coaId + '\',' + calc.id + ',this)"><i class="fas fa-times"></i></button>' : '')
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:10px">'
+      + '<div><label style="font-size:12px;color:var(--text2)">Volumen total a preparar (ml)</label>'
+      + '<input type="text" class="cf-vol" value="' + (campos.vol||'100') + '" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px" ' + (readOnly ? 'disabled' : '') + '></div>'
+      + '</div>'
+      + '<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Componentes:'
+      + (!readOnly ? ' <button onclick="agregarComponenteCC(this)" style="margin-left:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px">+ Agregar</button>' : '')
+      + '</div>'
+      + '<div class="cc-componentes">' + compHTML + '</div>'
+      + '<div style="display:flex;align-items:flex-start;gap:10px;margin-top:10px">'
+      + '<textarea class="calc-result" id="cr-' + calc.id + '" style="flex:1;height:100px;resize:vertical;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">' + (calc.resultado||'') + '</textarea>'
+      + (!readOnly ? '<button class="btn btn-success btn-sm" style="white-space:nowrap" onclick="calcCC(this,\'' + coaId + '\',' + calc.id + ')"><i class="fas fa-calculator"></i> Calcular</button>' : '')
+      + '</div>';
   }
+}
+
+function agregarComponenteCC(btn) {
+  var container = btn.closest('.calc-block').querySelector('.cc-componentes');
+  var ci = container.querySelectorAll('.cc-comp-row').length;
+  var div = document.createElement('div');
+  div.className = 'cc-comp-row';
+  div.style.cssText = 'display:grid;grid-template-columns:auto 1fr auto auto auto auto;gap:6px;align-items:center;margin-bottom:6px';
+  var html = '<select class="cc-tipo" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">';
+  ['Activo','Emulsionante','Solvente','Otro'].forEach(function(t){ html += '<option>' + t + '</option>'; });
+  html += '</select>';
+  html += '<input type="text" class="cc-nombre" placeholder="Nombre" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">';
+  html += '<input type="text" class="cc-cant" placeholder="Cantidad" style="width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">';
+  html += '<select class="cc-unidad" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">';
+  ['%','g/L','g','ml'].forEach(function(u){ html += '<option>' + u + '</option>'; });
+  html += '</select>';
+  html += '<input type="text" class="cc-pureza" placeholder="Pureza%" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">';
+  html += '<button onclick="eliminarComponenteCC(this)" style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px">x</button>';
+  div.innerHTML = html;
   container.appendChild(div);
 }
 
-async function agregarCalc(coaId, tipo) {
-  const _xciRes = await fetch(`${SUPABASE_URL}/rest/v1/calculadoras`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' },
-    body: JSON.stringify({ certificado_id: coaId, tipo, numero: 1, nombre: '', campos: {}, resultado: '' })
-  });
-  const _xciData = await _xciRes.json();
-  const nuevaCalc = Array.isArray(_xciData) ? _xciData[0] : _xciData;
-  if (nuevaCalc) renderCalcBlock(coaId, nuevaCalc, false);
-}
-
-async function eliminarCalcBlock(coaId, calcId, btn) {
-  await fetch(`${SUPABASE_URL}/rest/v1/calculadoras?id=eq.${calcId}`, {
-    method: 'DELETE',
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-  });
-  btn.closest('.calc-block').remove();
-}
-
-function calcMA(btn, coaId, calcId) {
-  const block = btn.closest('.calc-block');
-  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
-  const pm = pn(block.querySelector('.cf-pm')?.value);
-  const gr = pn(block.querySelector('.cf-gr')?.value);
-  const ch = pn(block.querySelector('.cf-ch')?.value);
-  const vh = pn(block.querySelector('.cf-vh')?.value);
-  if (!pm||!gr||!ch||!vh) { toast('Complete todos los campos', 'err'); return; }
-  const res = (ch * vh * pm) / gr;
-  document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
-}
-
-function calcIA(btn, coaId, calcId) {
-  const block = btn.closest('.calc-block');
-  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
-  const gr = pn(block.querySelector('.cf-gr')?.value);
-  const vh = pn(block.querySelector('.cf-vh')?.value);
-  const ch = pn(block.querySelector('.cf-ch')?.value);
-  if (!gr||!vh||!ch) { toast('Complete todos los campos', 'err'); return; }
-  const res = (vh * ch * 56.1) / gr;
-  document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
+function eliminarComponenteCC(btn) {
+  var row = btn.closest('.cc-comp-row');
+  if (row) row.remove();
 }
 
 function calcCC(btn, coaId, calcId) {
-  const block = btn.closest('.calc-block');
-  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
-  const vol = pn(block.querySelector('.cf-vol')?.value);
-  const act = pn(block.querySelector('.cf-act')?.value);
-  const uni = block.querySelector('.cf-uni')?.value || 'g/L';
-  const pur = pn(block.querySelector('.cf-pur')?.value) || 100;
-  if (!vol||!act) { toast('Complete volumen y cantidad activo', 'err'); return; }
-  let gr = uni === 'g/L' ? (act * vol) / 1000 : (act / 100) * vol;
-  gr = gr / (pur / 100);
-  const res = `CONCENTRADO DE ${vol}ml\nACTIVO: ${act}${uni} (${pur}% pureza) → ${gr.toFixed(4)}g\nSolvente: A volumen ${vol}ml`;
-  const el = document.getElementById('cr-' + calcId);
-  if (el) el.value = res;
-}
-
-async function guardarCalcs(coaId) {
-  var NL = NL;
-  var container = document.getElementById('calcs-' + coaId);
-  if (!container) return;
-  showLoader('Guardando calculadoras...');
-  var blocks = container.querySelectorAll('.calc-block');
-  var updates = [];
-  var textoCalcs = '';
-
-  blocks.forEach(function(block) {
-    var calcId = block.dataset.calcId;
-    var nombre = block.querySelector('.calc-nombre') ? block.querySelector('.calc-nombre').value : '';
-    var resultEl = block.querySelector('#cr-' + calcId);
-    var resultado = resultEl ? (resultEl.value || resultEl.textContent || '') : '';
-    resultado = resultado.trim();
-    var campos = {};
-
-    if (block.querySelector('.cf-pm')) {
-      var pm = block.querySelector('.cf-pm') ? block.querySelector('.cf-pm').value : '';
-      var gr = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
-      var ch = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
-      var vh = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
-      campos = { pm: pm, gr: gr, ch: ch, vh: vh };
-      if (resultado) {
-        textoCalcs += NL + (nombre || 'MATERIA ACTIVA') + ':' + NL;
-        if (pm) textoCalcs += '  PM: ' + pm + NL;
-        if (gr) textoCalcs += '  Gramos muestra: ' + gr + 'g' + NL;
-        if (ch) textoCalcs += '  Conc. Hyamine: ' + ch + NL;
-        if (vh) textoCalcs += '  Vol. Hyamine: ' + vh + 'ml' + NL;
-        textoCalcs += '  Resultado: ' + resultado + NL;
-      }
-    } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
-      var gr2 = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
-      var vh2 = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
-      var ch2 = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
-      campos = { gr: gr2, vh: vh2, ch: ch2 };
-      if (resultado) {
-        textoCalcs += NL + (nombre || 'INDICE AMINO') + ':' + NL;
-        if (gr2) textoCalcs += '  Gramos muestra: ' + gr2 + 'g' + NL;
-        if (vh2) textoCalcs += '  Vol. HCl: ' + vh2 + 'ml' + NL;
-        if (ch2) textoCalcs += '  Conc. HCl: ' + ch2 + NL;
-        textoCalcs += '  Resultado: ' + resultado + NL;
-      }
-    } else if (block.querySelector('.cf-vol')) {
-      var vol = block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '';
-      var act = block.querySelector('.cf-act') ? block.querySelector('.cf-act').value : '';
-      var uni = block.querySelector('.cf-uni') ? block.querySelector('.cf-uni').value : '';
-      var pur = block.querySelector('.cf-pur') ? block.querySelector('.cf-pur').value : '';
-      campos = { vol: vol, act: act, uni: uni, pur: pur };
-      if (resultado) textoCalcs += NL + (nombre || 'CONCENTRACION') + ':' + NL + resultado + NL;
+  var block = btn.closest('.calc-block');
+  var pn = function(v) { return parseFloat((v||'0').toString().replace(',','.')) || 0; };
+  var vol = pn(block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '0');
+  if (!vol) { toast('Ingrese el volumen total', 'err'); return; }
+  var rows = block.querySelectorAll('.cc-comp-row');
+  var lineas = ['CONCENTRADO DE ' + vol + 'ml'];
+  var hasSolvente = false;
+  rows.forEach(function(row) {
+    var tipo = row.querySelector('.cc-tipo') ? row.querySelector('.cc-tipo').value : '';
+    var nombre = row.querySelector('.cc-nombre') ? row.querySelector('.cc-nombre').value.trim() : '';
+    var cant = pn(row.querySelector('.cc-cant') ? row.querySelector('.cc-cant').value : '0');
+    var unidad = row.querySelector('.cc-unidad') ? row.querySelector('.cc-unidad').value : '%';
+    var pureza = pn(row.querySelector('.cc-pureza') ? row.querySelector('.cc-pureza').value : '100') || 100;
+    var label = nombre || tipo;
+    if (tipo === 'Solvente') {
+      hasSolvente = true;
+      if (cant) { lineas.push(tipo + ' (' + label + '): ' + cant + unidad); }
+      else { lineas.push(tipo + ' (' + label + '): A volumen ' + vol + 'ml'); }
+      return;
     }
-
-    updates.push(fetch(SUPABASE_URL + '/rest/v1/calculadoras?id=eq.' + calcId, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ nombre: nombre, campos: campos, resultado: resultado })
-    }));
+    if (!cant) return;
+    var gramos;
+    if (unidad === 'g/L') gramos = (cant * vol) / 1000;
+    else if (unidad === '%') gramos = (cant / 100) * vol;
+    else gramos = cant;
+    if (pureza !== 100 && tipo === 'Activo') {
+      gramos = gramos / (pureza / 100);
+      lineas.push(tipo + ' (' + label + '): ' + cant + unidad + ' (pureza ' + pureza + '%) -> ' + gramos.toFixed(4) + 'g');
+    } else {
+      lineas.push(tipo + ' (' + label + '): ' + cant + unidad + ' -> ' + gramos.toFixed(4) + 'g');
+    }
   });
-
-  await Promise.all(updates);
-
-  // Copiar a observaciones
-  if (textoCalcs) {
-    var obsEl = document.getElementById('obs-' + coaId);
-    if (obsEl) {
-      var marcador = NL + '--- CALCULOS ---';
-      var textoActual = obsEl.value || '';
-      var idx = textoActual.indexOf(marcador);
-      var textoBase = idx >= 0 ? textoActual.substring(0, idx).trimEnd() : textoActual.trimEnd();
-      obsEl.value = textoBase + marcador + NL + textoCalcs;
-    }
-  }
-
-  hideLoader();
-  toast('Calculadoras guardadas en observaciones', 'ok');
-}
-
-// ============================================================
-// FLOATING CALCULATOR
-// ============================================================
-function toggleCalc() { document.getElementById('floatCalc').classList.toggle('open'); }
-function calcAct(v) {
-  if (v === 'C') { calcExpr = '0'; }
-  else if (v === 'CE') { calcExpr = calcExpr.length > 1 ? calcExpr.slice(0,-1) : '0'; }
-  else if (v === '=') {
-    try { const r = new Function('return ' + calcExpr.replace(/×/g,'*').replace(/÷/g,'/'))(); calcExpr = String(parseFloat(r.toFixed(10))); } catch { calcExpr = 'Error'; }
-  } else if (v === '%') {
-    try { calcExpr = String(new Function('return (' + calcExpr + ')/100')()); } catch { calcExpr = 'Error'; }
-  } else {
-    if (calcExpr === '0' || calcExpr === 'Error') calcExpr = ['+','-','*','/'].includes(v) ? '0'+v : v;
-    else calcExpr += v;
-  }
-  document.getElementById('calcDisplay').textContent = calcExpr;
-}
-
-// ============================================================
-// DISEÑADOR - BUSCAR
-// ============================================================
-async function buscarParaDisenio() {
-  const term = document.getElementById('d-search').value.trim();
-  if (!term) { toast('Ingrese término de búsqueda', 'err'); return; }
-  showLoader('Buscando...');
-  const _dsUrl = `${SUPABASE_URL}/rest/v1/certificados?select=id,producto,lote,cliente,estado,fecha&laboratorio_id=eq.${currentLab.id}&or=(producto.ilike.*${term}*,lote.ilike.*${term}*,cliente.ilike.*${term}*,id.ilike.*${term}*)&limit=20`;
-  const _dsRes = await fetch(_dsUrl, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const data = await _dsRes.json();
-  hideLoader();
-  const div = document.getElementById('d-results');
-  if (!data || !data.length) { div.innerHTML = '<p style="color:var(--text2)">Sin resultados</p>'; return; }
-  div.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Producto</th><th>Lote</th><th>Estado</th><th>Cliente</th><th>Fecha</th><th></th></tr></thead><tbody>
-    ${data.map(c => {
-      const bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
-      return `<tr><td>${c.producto}</td><td>${c.lote}</td><td><span class="badge ${bc}">${c.estado}</span></td><td>${c.cliente}</td><td>${new Date(c.fecha).toLocaleDateString()}</td>
-      <td><button class="btn btn-primary btn-sm" onclick="cargarEnEditor('${c.id}')"><i class="fas fa-edit"></i> Editar</button></td></tr>`;
-    }).join('')}
-  </tbody></table></div>`;
-}
-
-async function cargarEnEditor(id) {
-  showLoader('Cargando en editor...');
-  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const _vcData = await _vcRes.json();
-  const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
-  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const analisis = await _vaRes.json();
-  hideLoader();
-  currentDesignData = { ...cert, analisis: analisis || [] };
-  document.getElementById('d-editor-title').textContent = `${cert.producto} — ${cert.lote}`;
-  document.getElementById('d-editor-section').style.display = 'block';
-  document.getElementById('d-results').style.display = 'none';
-  generarHTMLEditor(); mostrarBtnCOA();
-}
-
-function cerrarEditor() {
-  document.getElementById('d-editor-section').style.display = 'none';
-  document.getElementById('d-results').style.display = 'block';
-  if (ckEditorInst) { ckEditorInst.destroy(); ckEditorInst = null; }
-}
-
-function recargarEditor() { if (currentDesignData) generarHTMLEditor(); }
-
-async function generarHTMLEditor() {
-  if (!currentDesignData) return;
-  const d = currentDesignData;
-  const tipo = document.getElementById('d-tipo').value;
-  const mostrarCliente = document.getElementById('d-cliente').checked;
-  const mostrarObs = document.getElementById('d-obs').checked;
-  const mostrarAclar = document.getElementById('d-aclar').checked;
-  const fecha = new Date(d.fecha);
-  const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-  const fechaFab = `${meses[fecha.getMonth()]} DE ${fecha.getFullYear()}`;
-  const fechaVenc = `${meses[new Date(fecha.setMonth(fecha.getMonth()+24)).getMonth()]} DE ${new Date(d.fecha).getFullYear() + 2}`;
-  let html = `<div style="margin:20px 0">
-    <p><strong>Producto:</strong> ${d.producto}</p>
-    <p><strong>Lote:</strong> ${d.lote}</p>
-    ${tipo==='analisis'?`<p><strong>Fecha de fabricación:</strong> ${fechaFab}</p><p><strong>Fecha de vencimiento:</strong> ${fechaVenc}</p>`:
-    `<p><strong>Proveedor:</strong> ${d.cliente}</p><p><strong>Fecha:</strong> ${new Date(d.fecha).toLocaleDateString()}</p>`}
-    ${mostrarCliente && tipo==='analisis' ? `<p><strong>Cliente:</strong> ${d.cliente}</p>` : ''}
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin:20px 0;border:1px solid #ccc">
-    <thead><tr style="background:#f8f9fa">
-      <th style="padding:10px;border:1px solid #ccc;text-align:left">Análisis</th>
-      <th style="padding:10px;border:1px solid #ccc;text-align:center">Especificación</th>
-      <th style="padding:10px;border:1px solid #ccc;text-align:center">Resultado</th>
-      ${mostrarAclar?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Aclaración</th>':''}
-      ${tipo==='rechazo'?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Estado</th>':''}
-    </tr></thead>
-    <tbody>${d.analisis.map((a,i) => {
-      const spec = a.minimo && a.maximo ? `${a.minimo} - ${a.maximo}` : (a.minimo||a.maximo||'N/A');
-      const bg = i%2===0?'background:transparent':'background:#f9f9f9';
-      return `<tr style="${bg}">
-        <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre}</td>
-        <td style="padding:8px;border:1px solid #ccc;text-align:center;font-family:monospace">${spec}</td>
-        <td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold">${a.resultado||''}</td>
-        ${mostrarAclar?`<td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:11px">${a.aclaracion||''}</td>`:''}
-        ${tipo==='rechazo'?`<td style="padding:8px;border:1px solid #ccc;text-align:center;color:${a.estado==='DESAPROBADO'?'#dc2626':'#16a34a'};font-weight:bold">${a.estado||''}</td>`:''}
-      </tr>`;
-    }).join('')}</tbody>
-  </table>
-  ${mostrarObs && d.observaciones ? `<p><strong>Observaciones:</strong> ${d.observaciones}</p>` : ''}`;
-
-  const target = document.getElementById('ck-editor-target');
-  if (ckEditorInst) { await ckEditorInst.destroy(); ckEditorInst = null; }
-  target.innerHTML = '';
-  if (typeof ClassicEditor !== 'undefined') {
-    ClassicEditor.create(target, {
-      toolbar: ['bold','italic','underline','|','fontColor','|','bulletedList','numberedList','|','link','insertTable','|','alignment'],
-      language: 'es'
-    }).then(editor => { ckEditorInst = editor; editor.setData(html); }).catch(err => {
-      target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
-    });
-  } else {
-    target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
-  }
+  if (!hasSolvente) lineas.push('Solvente: A volumen ' + vol + 'ml');
+  var res = lineas.join(String.fromCharCode(10));
+  var el = document.getElementById('cr-' + calcId);
+  if (el) el.value = res;
 }
 
 function imprimirCert() {
