@@ -1683,9 +1683,10 @@ function renderCalcBlock(coaId, calc, readOnly) {
         ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcIA(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
       </div>`;
   } else if (calc.tipo === 'cc') {
+    var delBtnCC = !readOnly ? '<button class="btn btn-danger btn-sm cc-del-btn"><i class="fas fa-times"></i></button>' : '';
     div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
       + '<input type="text" class="calc-nombre" placeholder="Nombre (ej: Concentracion)" value="' + (calc.nombre||'') + '" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px"' + (readOnly?' disabled':'') + '>'
-      + (!readOnly ? '<button class="btn btn-danger btn-sm" onclick="eliminarCalcBlock(\'' + coaId + '\',' + calc.id + ',this)"><i class="fas fa-times"></i></button>' : '')
+      + delBtnCC
       + '</div>'
       + '<div class="calc-fields">'
       + '<div class="calc-field"><label>Volumen a preparar (ml)</label><input type="text" class="cf-vol" value="' + (campos.vol||'100') + '"' + (readOnly?' disabled':'') + '></div>'
@@ -1697,6 +1698,13 @@ function renderCalcBlock(coaId, calc, readOnly) {
       + '<textarea class="calc-result" id="cr-' + calc.id + '" style="flex:1;height:80px;resize:vertical;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">' + (calc.resultado||'') + '</textarea>'
       + (!readOnly ? '<button class="btn btn-success btn-sm" style="white-space:nowrap" onclick="calcCC(this,\'' + coaId + '\',' + calc.id + ')"><i class="fas fa-calculator"></i> Calcular</button>' : '')
       + '</div>';
+  }
+  // Add delete listener to CC block
+  var delBtn = div.querySelector('.cc-del-btn');
+  if (delBtn) {
+    delBtn.addEventListener('click', function() {
+      eliminarCalcBlock(coaId, calc.id, this);
+    });
   }
   if (container) container.appendChild(div);
 }
@@ -2086,6 +2094,40 @@ async function eliminarCalcBlock(coaId, calcId, btn) {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
   });
   btn.closest('.calc-block').remove();
+}
+
+async function cargarEnEditor(id) {
+  showLoader('Cargando en editor...');
+  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vcData = await _vcRes.json();
+  const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
+  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const analisis = await _vaRes.json();
+  hideLoader();
+  currentDesignData = { ...cert, analisis: analisis || [] };
+  document.getElementById('d-editor-title').textContent = `${cert.producto} — ${cert.lote}`;
+  document.getElementById('d-editor-section').style.display = 'block';
+  document.getElementById('d-results').style.display = 'none';
+  generarHTMLEditor();
+}
+
+async function buscarParaDisenio() {
+  const term = document.getElementById('d-search').value.trim();
+  if (!term) { toast('Ingrese término de búsqueda', 'err'); return; }
+  showLoader('Buscando...');
+  const _dsUrl = `${SUPABASE_URL}/rest/v1/certificados?select=id,producto,lote,cliente,estado,fecha&laboratorio_id=eq.${currentLab.id}&or=(producto.ilike.*${term}*,lote.ilike.*${term}*,cliente.ilike.*${term}*,id.ilike.*${term}*)&limit=20`;
+  const _dsRes = await fetch(_dsUrl, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const data = await _dsRes.json();
+  hideLoader();
+  const div = document.getElementById('d-results');
+  if (!data || !data.length) { div.innerHTML = '<p style="color:var(--text2)">Sin resultados</p>'; return; }
+  div.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Producto</th><th>Lote</th><th>Estado</th><th>Cliente</th><th>Fecha</th><th></th></tr></thead><tbody>
+    ${data.map(c => {
+      const bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
+      return `<tr><td>${c.producto}</td><td>${c.lote}</td><td><span class="badge ${bc}">${c.estado}</span></td><td>${c.cliente}</td><td>${new Date(c.fecha).toLocaleDateString()}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="cargarEnEditor('${c.id}')"><i class="fas fa-edit"></i> Editar</button></td></tr>`;
+    }).join('')}
+  </tbody></table></div>`;
 }
 </script>
 </body>
