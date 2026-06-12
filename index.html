@@ -27,12 +27,12 @@ const EMAILJS_PUBLIC_KEY  = 'sMR6zbwj-kT8gRAe-';
 <style>
 /* ============ VARIABLES & RESET ============ */
 :root {
-  --bg: #f0eef8;
+  --bg: #f5f3ff;
   --bg2: #ffffff;
   --bg3: #ede9f7;
   --text: #1a1035;
   --text2: #5a5275;
-  --border: #c9bfe8;
+  --border: #c4b5fd;
   --accent: #7c3aed;
   --accent2: #6d28d9;
   --success: #16a34a;
@@ -58,7 +58,7 @@ button{cursor:pointer;font-family:var(--font)}
 input,select,textarea{font-family:var(--font)}
 
 /* ============ LOGIN ============ */
-#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0f0b1a 0%,#2d1b69 50%,#1a0f3a 100%);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:24px}
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#1a0f3a 0%,#4c1d95 40%,#5b21b6 100%);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:24px}
 #loginScreen.hidden{display:none}
 .lab-selector{display:flex;gap:16px;margin-bottom:8px}
 .lab-card{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:24px 32px;cursor:pointer;transition:all .25s;text-align:center;min-width:160px;color:#fff}
@@ -99,7 +99,7 @@ input,select,textarea{font-family:var(--font)}
 .tab-btn.active{color:#fff;border-bottom-color:#fff;background:rgba(255,255,255,.15)}
 .tab-btn .tab-close{margin-left:6px;opacity:.5;font-size:11px;background:none;border:none;color:inherit;padding:0 2px;line-height:1;transition:opacity .2s}
 .tab-btn .tab-close:hover{opacity:1}
-.tab-content{flex:1;overflow-y:auto;padding:24px;max-width:1400px;margin:0 auto;width:100%}
+.tab-content{flex:1;overflow-y:auto;padding:24px}
 .tab-pane{display:none}
 .tab-pane.active{display:block}
 
@@ -118,6 +118,7 @@ input,select,textarea{font-family:var(--font)}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
 .fg textarea{resize:vertical;min-height:90px}
 @media(max-width:640px){.form-row,.form-row.triple{grid-template-columns:1fr}}
+@media(min-width:1024px){.form-row{grid-template-columns:1fr 1fr}.form-row.triple{grid-template-columns:1fr 1fr 1fr}}
 
 /* ============ BUTTONS ============ */
 .btn{padding:9px 18px;border:none;border-radius:8px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:all .2s}
@@ -163,9 +164,9 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
 .locked-item .lk-value{font-size:15px;font-weight:600;color:var(--text)}
 
 /* ============ MODAL ============ */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
 .modal-backdrop.open{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;min-width:340px;max-width:90vw;width:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;min-width:340px;max-width:min(90vw,800px);width:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
 .modal h3{font-size:17px;font-weight:700;margin-bottom:16px}
 .modal-footer{margin-top:20px;display:flex;justify-content:flex-end;gap:10px}
 
@@ -233,6 +234,24 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
   .topbar-left .top-subtitle{display:none}
   .cert-row{grid-template-columns:1fr 1fr;gap:6px}
 }
+
+/* ===== RESPONSIVE ADICIONAL ===== */
+@media(min-width:768px){
+  .locked-grid{grid-template-columns:repeat(4,1fr)}
+  .calc-fields{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:480px){
+  .topbar{padding:8px 12px}
+  .top-title{font-size:14px}
+  .tab-btn{padding:8px 12px;font-size:12px}
+  .card{padding:16px}
+  .btn{padding:8px 14px;font-size:12px}
+}
+@media(min-width:1200px){
+  .tab-content{padding:28px 32px}
+  table.data-table{font-size:14px}
+  table.data-table th,table.data-table td{padding:11px 16px}
+}
 </style>
 </head>
 <body>
@@ -242,8 +261,11 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
   <div style="text-align:center;color:#fff;margin-bottom:8px">
     <div style="font-size:13px;opacity:.6;letter-spacing:.1em;text-transform:uppercase">Sistema de Control de Calidad</div>
   </div>
-  <div style="text-align:center;color:rgba(255,255,255,.6);font-size:13px;margin-bottom:4px">Seleccione su laboratorio</div>
-  <div class="lab-selector" id="labSelector"></div>
+  <div style="text-align:center;color:rgba(255,255,255,.6);font-size:13px;margin-bottom:12px">Seleccione su laboratorio</div>
+  <select id="labSelector" style="padding:12px 20px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:15px;font-weight:600;outline:none;cursor:pointer;margin-bottom:8px">
+    <option value="ferarquimica" style="background:#1a1528">Ferarquimica</option>
+    <option value="emulpar" style="background:#1a1528">Emulpar</option>
+  </select>
   <div class="login-box">
     <div class="login-title" id="loginTitle">Iniciar Sesión</div>
     <div class="login-field">
@@ -282,7 +304,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <button class="tab-btn active" data-tab="inicio" onclick="switchTab('inicio',this)"><i class="fas fa-home"></i> Inicio</button>
     <button class="tab-btn" data-tab="proceso" onclick="switchTab('proceso',this);loadProceso()"><i class="fas fa-clock"></i> En Proceso</button>
     <button class="tab-btn" data-tab="buscar" onclick="switchTab('buscar',this)"><i class="fas fa-search"></i> Buscar</button>
-    <button class="tab-btn" data-tab="gestion" onclick="switchTab('gestion',this)"><i class="fas fa-cogs"></i> Gestión</button>
+    <button class="tab-btn" data-tab="gestion" onclick="switchTab('gestion',this);cargarListaProductosGestion()"><i class="fas fa-cogs"></i> Gestión</button>
     <button class="tab-btn" data-tab="disenio" onclick="switchTab('disenio',this)"><i class="fas fa-print"></i> Diseñar</button>
     <button class="tab-btn" data-tab="config" onclick="switchTab('config',this)"><i class="fas fa-sliders-h"></i> Config</button>
   </div>
@@ -372,9 +394,13 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <div class="tab-pane" id="tab-gestion">
       <div class="card">
         <h3><i class="fas fa-cogs"></i> Gestión de Parámetros</h3>
-        <div class="fg" style="max-width:500px;margin-bottom:16px">
-          <label>Producto</label>
-          <input type="text" id="g-producto" placeholder="Ej: HARINA DE TRIGO" style="text-transform:uppercase" maxlength="300">
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end">
+          <div class="fg" style="flex:1;min-width:200px;position:relative">
+            <label>Buscar producto</label>
+            <input type="text" id="g-producto" placeholder="Escribi para filtrar..." maxlength="300">
+            <div id="g-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+          </div>
+          <button class="btn btn-outline" onclick="limpiarGestion()"><i class="fas fa-plus"></i> Nuevo producto</button>
         </div>
         <div id="g-analisis-container">
           <div class="analisis-bloque" data-idx="0">
@@ -392,6 +418,11 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
               <div class="fg">
                 <label>Máximo</label>
                 <input type="text" class="g-max" placeholder="Ej: 7.5 (opcional)" maxlength="200">
+              </div>
+              <div class="fg" style="display:flex;align-items:flex-end;padding-bottom:4px">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;white-space:nowrap">
+                  <input type="checkbox" class="g-coa" checked> En COA
+                </label>
               </div>
               <div class="fg" style="justify-content:flex-end">
                 <button class="btn btn-danger btn-sm g-del" style="display:none;margin-top:20px" onclick="remBloque(this)"><i class="fas fa-trash"></i></button>
@@ -421,7 +452,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
             <div style="font-weight:700;font-size:15px" id="d-editor-title">Editor</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <select id="d-tipo" class="fg" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
+              <select id="d-tipo" class="fg" onchange="var mf=document.getElementById('motivo-rechazo-field');if(mf)mf.style.display=this.value==='rechazo'?'block':'none'" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
                 <option value="analisis">Certificado de Análisis</option>
                 <option value="rechazo">Informe de Rechazo</option>
               </select>
@@ -433,8 +464,17 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-secondary btn-sm" onclick="recargarEditor()"><i class="fas fa-sync"></i> Recargar</button>
+              <button class="btn btn-outline btn-sm" onclick="toggleCOASelector()" id="btn-coa-sel" style="display:none"><i class="fas fa-filter"></i> Filtrar COA</button>
               <button class="btn btn-primary btn-sm" onclick="imprimirCert()"><i class="fas fa-print"></i> Imprimir</button>
               <button class="btn btn-secondary btn-sm" onclick="cerrarEditor()"><i class="fas fa-arrow-left"></i> Volver</button>
+            </div>
+          </div>
+          <div id="coa-filter-panel" style="display:none;padding:12px 16px;background:var(--bg3);border-radius:8px;margin-bottom:12px;border:1px solid var(--border)">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px"><i class="fas fa-filter"></i> Seleccionar analisis para imprimir:</div>
+            <div id="coa-checks-list" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;padding:4px"></div>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+              <button class="btn btn-primary btn-sm" onclick="guardarSeleccionCOA()"><i class="fas fa-save"></i> Guardar seleccion</button>
+              <span style="font-size:12px;color:var(--text2)">Desmarcados NO aparecen en la impresion</span>
             </div>
           </div>
           <div class="ck-editor-wrap">
@@ -658,6 +698,11 @@ let modalCb = null;
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+  document.addEventListener('click', function(e) {
+    var dd = document.getElementById('g-dropdown');
+    var inp = document.getElementById('g-producto');
+    if (dd && e.target !== inp) dd.style.display = 'none';
+  });
   initDarkMode();
   await renderLabSelector();
   document.getElementById('loginUser').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
@@ -672,35 +717,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 // LABORATORIOS - SELECTOR LOGIN
 // ============================================================
 async function renderLabSelector() {
-  const _labRes = await fetch(`${SUPABASE_URL}/rest/v1/laboratorios?select=id,nombre,logo_url`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const data = await _labRes.json();
-  const error = null;
-  if (error || !data) return;
-  const container = document.getElementById('labSelector');
-  container.innerHTML = '';
-  data.forEach(lab => {
-    const card = document.createElement('div');
-    card.className = 'lab-card';
-    card.dataset.id = lab.id;
-    card.innerHTML = `<img src="${lab.logo_url}" onerror="this.style.display='none'"><div class="lab-name">${lab.nombre}</div>`;
-    card.onclick = () => {
-      document.querySelectorAll('.lab-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      document.getElementById('loginTitle').textContent = `${lab.nombre}`;
-    };
-    container.appendChild(card);
-  });
-  // auto-select first
-  container.firstChild && container.firstChild.click();
+  // opciones hardcodeadas en el HTML
 }
 
 // ============================================================
 // LOGIN / LOGOUT
 // ============================================================
 async function doLogin() {
-  const selectedCard = document.querySelector('.lab-card.selected');
-  if (!selectedCard) { showErr('Seleccione un laboratorio'); return; }
-  const labId = selectedCard.dataset.id;
+  const labSel = document.getElementById('labSelector');
+  const labId = labSel ? labSel.value : '';
+  if (!labId) { showErr('Seleccione un laboratorio'); return; }
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
   if (!user || !pass) { showErr('Ingrese usuario y contraseña'); return; }
@@ -722,6 +748,25 @@ async function doLogin() {
   document.getElementById('topLogo').src = data.logo_url;
   document.getElementById('topTitle').textContent = data.nombre;
   document.getElementById('topLabBadge').textContent = data.id === 'ferarquimica' ? '🇦🇷 Argentina' : '🇵🇾 Paraguay';
+  // Apply lab-specific theme
+  if (data.id === 'emulpar') {
+    document.documentElement.style.setProperty('--accent', '#0891b2');
+    document.documentElement.style.setProperty('--accent2', '#0e7490');
+    document.documentElement.style.setProperty('--bg', '#f0f9ff');
+    document.documentElement.style.setProperty('--bg3', '#e0f2fe');
+    document.documentElement.style.setProperty('--border', '#7dd3fc');
+    document.documentElement.style.setProperty('--shadow', '0 2px 12px rgba(8,145,178,.12)');
+    document.querySelector('.topbar').style.background = 'linear-gradient(135deg,#0891b2,#0e7490)';
+    document.querySelector('.tabs-bar').style.background = 'linear-gradient(135deg,#0e7490,#155e75)';
+  } else {
+    document.documentElement.style.setProperty('--accent', '#7c3aed');
+    document.documentElement.style.setProperty('--accent2', '#6d28d9');
+    document.documentElement.style.setProperty('--bg', '#f5f3ff');
+    document.documentElement.style.setProperty('--bg3', '#ede9f7');
+    document.documentElement.style.setProperty('--border', '#c4b5fd');
+    document.querySelector('.topbar').style.background = 'linear-gradient(135deg,#7c3aed,#6d28d9)';
+    document.querySelector('.tabs-bar').style.background = 'linear-gradient(135deg,#6d28d9,#5b21b6)';
+  }
   await cargarProductosSelect();
   loadConfig();
 }
@@ -843,7 +888,9 @@ async function iniciarCertificado() {
   if (params && params.length > 0) {
     const analisisRows = params.map((p, i) => ({
       certificado_id: id, orden: i + 1, nombre: p.analisis,
-      minimo: p.minimo, maximo: p.maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: false
+      minimo: p.minimo, maximo: p.maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: false,
+      parametro_id: p.id,
+      incluir_en_coa: p.incluir_en_coa !== false
     }));
     await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados`, {
       method: 'POST',
@@ -1394,14 +1441,14 @@ async function verCertFinalizado(id) {
   showModal(
     `Certificado ${id}`,
     `<span class="badge ${bc}" style="margin-bottom:12px;display:inline-block">${cert.estado}</span>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
       <div class="locked-item"><div class="lk-label">Producto</div><div class="lk-value">${cert.producto}</div></div>
       <div class="locked-item"><div class="lk-label">Lote</div><div class="lk-value">${cert.lote}</div></div>
       <div class="locked-item"><div class="lk-label">Cliente</div><div class="lk-value">${cert.cliente}</div></div>
       <div class="locked-item"><div class="lk-label">Fecha</div><div class="lk-value">${new Date(cert.fecha).toLocaleDateString()}</div></div>
     </div>
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
-      <table class="data-table" style="min-width:600px;width:100%">
+      <table class="data-table" style="min-width:560px;width:100%">
         <thead><tr><th>Análisis</th><th>Min</th><th>Max</th><th>Resultado</th><th>Aclaración</th><th>Estado</th></tr></thead>
         <tbody>${tbody}</tbody>
       </table>
@@ -1417,21 +1464,25 @@ async function verCertFinalizado(id) {
 // GESTIÓN DE PARÁMETROS
 // ============================================================
 function addBloque() {
-  const c = document.getElementById('g-analisis-container');
-  const idx = c.querySelectorAll('.analisis-bloque').length;
-  const div = document.createElement('div');
+  var c = document.getElementById('g-analisis-container');
+  var count = c.querySelectorAll('.analisis-bloque').length;
+  var div = document.createElement('div');
   div.className = 'analisis-bloque';
-  div.dataset.idx = idx;
-  div.innerHTML = `
-    <div class="form-row"><div class="fg"><label>Análisis</label><input type="text" class="g-nombre" placeholder="Ej: pH (unidad)" maxlength="500"></div></div>
-    <div class="form-row triple">
-      <div class="fg"><label>Mínimo</label><input type="text" class="g-min" placeholder="Ej: 6.5 o N/A" maxlength="200"></div>
-      <div class="fg"><label>Máximo</label><input type="text" class="g-max" placeholder="Ej: 7.5 (opcional)" maxlength="200"></div>
-      <div class="fg" style="justify-content:flex-end"><button class="btn btn-danger btn-sm g-del" style="margin-top:20px" onclick="remBloque(this)"><i class="fas fa-trash"></i></button></div>
-    </div>
-    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">`;
+  div.dataset.idx = count;
+  var html = '<div class="form-row"><div class="fg"><label>Análisis</label>';
+  html += '<input type="text" class="g-nombre" placeholder="Ej: pH (unidad)" maxlength="500"></div></div>';
+  html += '<div class="form-row triple">';
+  html += '<div class="fg"><label>Mínimo</label><input type="text" class="g-min" placeholder="Ej: 6.5 o N/A" maxlength="200"></div>';
+  html += '<div class="fg"><label>Máximo</label><input type="text" class="g-max" placeholder="Ej: 7.5 (opcional)" maxlength="200"></div>';
+  html += '<div class="fg" style="display:flex;align-items:flex-end;padding-bottom:4px">';
+  html += '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;white-space:nowrap">';
+  html += '<input type="checkbox" class="g-coa" checked> En COA</label></div>';
+  html += '<div class="fg" style="justify-content:flex-end">';
+  html += '<button class="btn btn-danger btn-sm g-del" style="margin-top:20px" onclick="remBloque(this)"><i class="fas fa-trash"></i></button>';
+  html += '</div></div>';
+  html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';
+  div.innerHTML = html;
   c.appendChild(div);
-  actualizarBotonesDel();
 }
 
 function remBloque(btn) { btn.closest('.analisis-bloque').remove(); actualizarBotonesDel(); }
@@ -1445,27 +1496,42 @@ async function guardarParametros() {
   if (!producto) { toast('Ingrese el nombre del producto', 'err'); return; }
   const bloques = document.querySelectorAll('.analisis-bloque');
   const analisis = [];
-  bloques.forEach(b => {
-    const nombre = b.querySelector('.g-nombre')?.value.trim();
-    const minimo = b.querySelector('.g-min')?.value.trim();
-    const maximo = b.querySelector('.g-max')?.value.trim();
-    if (nombre && minimo) analisis.push({ laboratorio_id: currentLab.id, producto, analisis: nombre, minimo, maximo: maximo || null });
+  bloques.forEach(function(b) {
+    var nombre = b.querySelector('.g-nombre') ? b.querySelector('.g-nombre').value.trim() : '';
+    var minimo  = b.querySelector('.g-min')    ? b.querySelector('.g-min').value.trim()    : '';
+    var maximo  = b.querySelector('.g-max')    ? b.querySelector('.g-max').value.trim()    : '';
+    var incluir = b.querySelector('.g-coa')    ? b.querySelector('.g-coa').checked         : true;
+    var pid     = b.dataset.paramId || null;
+    if (!nombre || !minimo) return;
+    var item = { laboratorio_id: currentLab.id, producto: producto, analisis: nombre, minimo: minimo, maximo: maximo || null, incluir_en_coa: incluir };
+    if (pid) item._id = pid;
+    analisis.push(item);
   });
   if (!analisis.length) { toast('Agregue al menos un análisis con nombre y mínimo', 'err'); return; }
   showLoader('Guardando...');
-  const rows = analisis;
-  const _gpRes = await fetch(`${SUPABASE_URL}/rest/v1/parametros`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
-    body: JSON.stringify(rows)
+  var toInsert = analisis.filter(function(a){ return !a._id; });
+  var toUpdate = analisis.filter(function(a){ return !!a._id; });
+  var ops = [];
+  toUpdate.forEach(function(a) {
+    var aid = a._id; delete a._id;
+    ops.push(fetch(SUPABASE_URL + '/rest/v1/parametros?id=eq.' + aid, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(a)
+    }));
   });
-  const error = _gpRes.ok ? null : { message: 'Error al guardar: ' + _gpRes.status };
+  if (toInsert.length) {
+    ops.push(fetch(SUPABASE_URL + '/rest/v1/parametros', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(toInsert)
+    }));
+  }
+  await Promise.all(ops);
   hideLoader();
-  if (error) { toast('Error: ' + error.message, 'err'); return; }
-  toast(`${analisis.length} análisis guardados para ${producto}`, 'ok');
-  document.getElementById('g-producto').value = '';
-  document.querySelectorAll('.analisis-bloque .g-nombre, .analisis-bloque .g-min, .analisis-bloque .g-max').forEach(i => i.value = '');
+  toast(analisis.length + ' analisis guardados para ' + producto, 'ok');
   await cargarProductosSelect();
+  cargarListaProductosGestion();
 }
 
 // ============================================================
@@ -1599,100 +1665,24 @@ async function guardarCalcs(coaId) {
   showLoader('Guardando calculadoras...');
   const blocks = container.querySelectorAll('.calc-block');
   const updates = [];
-  
-  // Construir texto para observaciones
-  let textoCalcs = '';
-  
   blocks.forEach(block => {
     const calcId = block.dataset.calcId;
     const nombre = block.querySelector('.calc-nombre')?.value || '';
     const resultEl = block.querySelector(`#cr-${calcId}`);
-    const resultado = resultEl ? (resultEl.value || resultEl.textContent || '') : '';
+    const resultado = resultEl ? (resultEl.value || resultEl.textContent) : '';
     let campos = {};
-    
-    // Determinar tipo de calculadora y armar campos + texto
-    if (block.querySelector('.cf-pm')) {
-      // Materia Activa
-      const pm = block.querySelector('.cf-pm')?.value || '';
-      const gr = block.querySelector('.cf-gr')?.value || '';
-      const ch = block.querySelector('.cf-ch')?.value || '';
-      const vh = block.querySelector('.cf-vh')?.value || '';
-      campos = { pm, gr, ch, vh };
-      if (pm || gr || ch || vh || resultado) {
-        textoCalcs += `
-${nombre || 'MATERIA ACTIVA'}:
-`;
-        if (pm) textoCalcs += `• PM: ${pm}
-`;
-        if (gr) textoCalcs += `• Gramos muestra: ${gr}g
-`;
-        if (ch) textoCalcs += `• Conc. Hyamine: ${ch}
-`;
-        if (vh) textoCalcs += `• Vol. Hyamine: ${vh}ml
-`;
-        if (resultado) textoCalcs += `• Resultado: ${resultado}
-`;
-      }
-    } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
-      // Índice Amino
-      const gr = block.querySelector('.cf-gr')?.value || '';
-      const vh = block.querySelector('.cf-vh')?.value || '';
-      const ch = block.querySelector('.cf-ch')?.value || '';
-      campos = { gr, vh, ch };
-      if (gr || vh || ch || resultado) {
-        textoCalcs += `
-${nombre || 'ÍNDICE AMINO'}:
-`;
-        if (gr) textoCalcs += `• Gramos muestra: ${gr}g
-`;
-        if (vh) textoCalcs += `• Vol. HCl: ${vh}ml
-`;
-        if (ch) textoCalcs += `• Conc. HCl: ${ch}
-`;
-        if (resultado) textoCalcs += `• Resultado: ${resultado}
-`;
-      }
-    } else if (block.querySelector('.cf-vol')) {
-      // Concentración
-      const vol = block.querySelector('.cf-vol')?.value || '';
-      const act = block.querySelector('.cf-act')?.value || '';
-      const uni = block.querySelector('.cf-uni')?.value || '';
-      const pur = block.querySelector('.cf-pur')?.value || '';
-      campos = { vol, act, uni, pur };
-      if (resultado) {
-        textoCalcs += `
-${nombre || 'CONCENTRACIÓN'}:
-${resultado}
-`;
-      }
-    }
-    
+    if (block.querySelector('.cf-pm')) campos = { pm: block.querySelector('.cf-pm')?.value, gr: block.querySelector('.cf-gr')?.value, ch: block.querySelector('.cf-ch')?.value, vh: block.querySelector('.cf-vh')?.value };
+    else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) campos = { gr: block.querySelector('.cf-gr')?.value, vh: block.querySelector('.cf-vh')?.value, ch: block.querySelector('.cf-ch')?.value };
+    else if (block.querySelector('.cf-vol')) campos = { vol: block.querySelector('.cf-vol')?.value, act: block.querySelector('.cf-act')?.value, uni: block.querySelector('.cf-uni')?.value, pur: block.querySelector('.cf-pur')?.value };
     updates.push(fetch(`${SUPABASE_URL}/rest/v1/calculadoras?id=eq.${calcId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
       body: JSON.stringify({ nombre, campos, resultado })
     }));
   });
-  
   await Promise.all(updates);
-  
-  // Copiar resultados a observaciones
-  if (textoCalcs) {
-    const obsEl = document.getElementById('obs-' + coaId);
-    if (obsEl) {
-      const textoActual = obsEl.value || '';
-      // Remover cálculos anteriores si existen
-      const marcador = '
---- CÁLCULOS ---';
-      const idxMarcador = textoActual.indexOf(marcador);
-      const textoBase = idxMarcador >= 0 ? textoActual.substring(0, idxMarcador).trimEnd() : textoActual.trimEnd();
-      obsEl.value = textoBase + '
---- CÁLCULOS ---' + textoCalcs;
-    }
-  }
-  
   hideLoader();
-  toast('Calculadoras guardadas en observaciones', 'ok');
+  toast('Calculadoras guardadas', 'ok');
 }
 
 // ============================================================
@@ -1747,7 +1737,7 @@ async function cargarEnEditor(id) {
   document.getElementById('d-editor-title').textContent = `${cert.producto} — ${cert.lote}`;
   document.getElementById('d-editor-section').style.display = 'block';
   document.getElementById('d-results').style.display = 'none';
-  generarHTMLEditor();
+  generarHTMLEditor(); mostrarBtnCOA();
 }
 
 function cerrarEditor() {
@@ -1768,72 +1758,35 @@ async function generarHTMLEditor() {
   const fecha = new Date(d.fecha);
   const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
   const fechaFab = `${meses[fecha.getMonth()]} DE ${fecha.getFullYear()}`;
-  const añoVenc = fecha.getFullYear() + 2;
-  const mesVencIdx = fecha.getMonth();
-  const fechaVenc = `${meses[mesVencIdx]} DE ${añoVenc}`;
-
-  let html = `
-  <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-    
-    <!-- CABECERA -->
-    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
-      <img src="${currentLab?.logo_url || ''}" style="height:70px; object-fit:contain;" onerror="this.style.display='none'">
-      <h1 style="font-size:22px; font-weight:bold; text-transform:uppercase; text-align:center; flex:1; margin:0; color:#333;">
-        ${tipo === 'analisis' ? 'CERTIFICADO DE ANÁLISIS' : 'INFORME DE RECHAZO'}
-      </h1>
-      <div style="width:80px;"></div>
-    </div>
-
-    <!-- DATOS DEL PRODUCTO -->
-    <div style="margin-bottom: 20px; line-height: 2;">
-      ${tipo === 'rechazo' ? `
-        <p style="margin:4px 0"><strong>Proveedor:</strong> ${d.cliente || ''}</p>
-        <p style="margin:4px 0"><strong>Material:</strong> ${d.producto || ''}</p>
-        <p style="margin:4px 0"><strong>Lote:</strong> ${d.lote || ''}</p>
-        <p style="margin:4px 0"><strong>Fecha:</strong> ${new Date(d.fecha).toLocaleDateString()}</p>
-      ` : `
-        <p style="margin:4px 0"><strong>Producto:</strong> ${d.producto || ''}</p>
-        <p style="margin:4px 0"><strong>Lote:</strong> ${d.lote || ''}</p>
-        <p style="margin:4px 0"><strong>Fecha de fabricación:</strong> ${fechaFab}</p>
-        <p style="margin:4px 0"><strong>Fecha de vencimiento:</strong> ${fechaVenc}</p>
-        ${mostrarCliente && d.cliente ? `<p style="margin:4px 0"><strong>Cliente:</strong> ${d.cliente}</p>` : ''}
-      `}
-    </div>
-
-    <!-- TABLA DE ANÁLISIS -->
-    <table style="width:100%; border-collapse:collapse; font-size:13px; margin:20px 0;">
-      <thead>
-        <tr style="background:#f5f5f5;">
-          <th style="padding:10px 12px; border:1px solid #ccc; text-align:left; font-weight:bold;">Análisis</th>
-          <th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Especificación</th>
-          <th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Resultado</th>
-          ${mostrarAclar ? '<th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Aclaración</th>' : ''}
-          ${tipo === 'rechazo' ? '<th style="padding:10px 12px; border:1px solid #ccc; text-align:center; font-weight:bold;">Estado</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>
-        ${d.analisis.map((a, i) => {
-          const spec = (a.minimo && a.maximo && a.minimo !== 'N/A' && a.maximo !== 'N/A')
-            ? `${a.minimo} - ${a.maximo}`
-            : (a.minimo && a.minimo !== 'N/A' ? a.minimo : (a.maximo && a.maximo !== 'N/A' ? `Max. ${a.maximo}` : ''));
-          const bg = i % 2 === 0 ? 'background:white' : 'background:#fafafa';
-          return `<tr style="${bg}">
-            <td style="padding:9px 12px; border:1px solid #ddd;">${a.nombre || ''}</td>
-            <td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-style:italic;">${spec}</td>
-            <td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-weight:bold;">${a.resultado || ''}</td>
-            ${mostrarAclar ? `<td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-size:11px; color:#555;">${a.aclaracion || ''}</td>` : ''}
-            ${tipo === 'rechazo' ? `<td style="padding:9px 12px; border:1px solid #ddd; text-align:center; font-weight:bold; color:${a.estado === 'DESAPROBADO' ? '#dc2626' : '#16a34a'};">${a.estado || ''}</td>` : ''}
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-
-    ${mostrarObs && d.observaciones ? `
-    <div style="margin-top:15px; font-size:12px; color:#444; line-height:1.6;">
-      <strong>Observaciones:</strong> ${d.observaciones}
-    </div>` : ''}
-
-  </div>`;
+  const fechaVenc = `${meses[new Date(fecha.setMonth(fecha.getMonth()+24)).getMonth()]} DE ${new Date(d.fecha).getFullYear() + 2}`;
+  let html = `<div style="margin:20px 0">
+    <p><strong>Producto:</strong> ${d.producto}</p>
+    <p><strong>Lote:</strong> ${d.lote}</p>
+    ${tipo==='analisis'?`<p><strong>Fecha de fabricación:</strong> ${fechaFab}</p><p><strong>Fecha de vencimiento:</strong> ${fechaVenc}</p>`:
+    `<p><strong>Proveedor:</strong> ${d.cliente}</p><p><strong>Fecha:</strong> ${new Date(d.fecha).toLocaleDateString()}</p>`}
+    ${mostrarCliente && tipo==='analisis' ? `<p><strong>Cliente:</strong> ${d.cliente}</p>` : ''}
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;margin:20px 0;border:1px solid #ccc">
+    <thead><tr style="background:#f8f9fa">
+      <th style="padding:10px;border:1px solid #ccc;text-align:left">Análisis</th>
+      <th style="padding:10px;border:1px solid #ccc;text-align:center">Especificación</th>
+      <th style="padding:10px;border:1px solid #ccc;text-align:center">Resultado</th>
+      ${mostrarAclar?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Aclaración</th>':''}
+      ${tipo==='rechazo'?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Estado</th>':''}
+    </tr></thead>
+    <tbody>${d.analisis.map((a,i) => {
+      const spec = a.minimo && a.maximo ? `${a.minimo} - ${a.maximo}` : (a.minimo||a.maximo||'N/A');
+      const bg = i%2===0?'background:transparent':'background:#f9f9f9';
+      return `<tr style="${bg}">
+        <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre}</td>
+        <td style="padding:8px;border:1px solid #ccc;text-align:center;font-family:monospace">${spec}</td>
+        <td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold">${a.resultado||''}</td>
+        ${mostrarAclar?`<td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:11px">${a.aclaracion||''}</td>`:''}
+        ${tipo==='rechazo'?`<td style="padding:8px;border:1px solid #ccc;text-align:center;color:${a.estado==='DESAPROBADO'?'#dc2626':'#16a34a'};font-weight:bold">${a.estado||''}</td>`:''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table>
+  ${mostrarObs && d.observaciones ? `<p><strong>Observaciones:</strong> ${d.observaciones}</p>` : ''}`;
 
   const target = document.getElementById('ck-editor-target');
   if (ckEditorInst) { await ckEditorInst.destroy(); ckEditorInst = null; }
@@ -1851,145 +1804,126 @@ async function generarHTMLEditor() {
 }
 
 function imprimirCert() {
-  const d = currentDesignData;
+  var d = currentDesignData;
   if (!d) { toast('No hay certificado cargado', 'err'); return; }
-  const tipo = document.getElementById('d-tipo').value;
-  const titulo = tipo === 'analisis' ? 'CERTIFICADO DE ANÁLISIS' : 'INFORME DE RECHAZO';
-  const footer = tipo === 'analisis'
-    ? 'Los datos consignados en este certificado reflejan los resultados de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepción. ' + (currentLab?.nombre || '') + ' no se responsabiliza por el uso inadecuado que se haga del producto.'
-    : 'Los datos consignados en este certificado fueron suministrados por nuestro proveedor y solamente reflejan los resultados de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepción.';
+
+  var tipo = document.getElementById('d-tipo').value;
+  var mostrarCliente = document.getElementById('d-cliente').checked;
+  var mostrarObs = document.getElementById('d-obs').checked;
+  var mostrarAclar = document.getElementById('d-aclar').checked;
+
+  var esFerarquimica = currentLab && currentLab.id === 'ferarquimica';
+  var logoUrl = esFerarquimica
+    ? 'https://i.postimg.cc/NMyD0RFw/ISO-color-de-120-1.png'
+    : 'https://i.postimg.cc/50K58Rhj/abd19f41-6bdb-448e-be4e-0f497c394472.png';
+  var watermarkUrl = 'https://i.postimg.cc/wxPSw3dP/watermark-transparent.png';
+  var labNombre = currentLab ? currentLab.nombre : '';
+  var labDir    = currentLab ? (currentLab.direccion || '') : '';
+  var labTel    = currentLab ? (currentLab.telefono  || '') : '';
+  var labEmail  = esFerarquimica ? 'ferar@ferarquimica.com' : 'info@emulpar.com.py';
+  var titulo = tipo === 'analisis' ? 'CERTIFICADO DE ANALISIS' : 'INFORME DE RECHAZO';
+    var motivoRechazo = document.getElementById('d-motivo-rechazo') ? document.getElementById('d-motivo-rechazo').value : '';
+  var nota = tipo === 'rechazo'
+    ? 'Motivo del rechazo: ' + (motivoRechazo || '')
+    : 'Los datos consignados en este certificado solamente reflejan los resultados obtenidos del analisis de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepcion. ' + labNombre + ' no se responsabiliza por el uso inadecuado que se haga del producto o de la informacion suministrada.';
+
+  var fecha = new Date(d.fecha);
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var fechaFab  = meses[fecha.getMonth()] + ' de ' + fecha.getFullYear();
+  var fechaVenc = meses[fecha.getMonth()] + ' de ' + (fecha.getFullYear() + 2);
+
+  var filasAnalisis = '';
+  // Use checkboxes if panel is open, otherwise use saved incluir_en_coa
+  var panel = document.getElementById('coa-filter-panel');
+  var checks = document.querySelectorAll('.coa-imp-check');
+  var analisis;
+  if (panel && panel.style.display !== 'none' && checks.length > 0) {
+    var checkedIds = [];
+    checks.forEach(function(cb) { if (cb.checked) checkedIds.push(String(cb.dataset.aid)); });
+    analisis = (d.analisis || []).filter(function(a) { return checkedIds.indexOf(String(a.id)) >= 0; });
+  } else {
+    analisis = (d.analisis || []).filter(function(a) { return a.incluir_en_coa !== false; });
+  }
+  for (var i = 0; i < analisis.length; i++) {
+    var a = analisis[i];
+    var spec = '';
+    if (a.minimo && a.maximo && a.minimo !== 'N/A' && a.maximo !== 'N/A') spec = a.minimo + ' - ' + a.maximo;
+    else if (a.minimo && a.minimo !== 'N/A') spec = a.minimo;
+    else if (a.maximo && a.maximo !== 'N/A') spec = 'Max. ' + a.maximo;
+    var bg = 'transparent';
+    var aclarCol  = mostrarAclar     ? '<td style="padding:7px 10px;font-size:9pt;color:#555;font-style:italic">' + (a.aclaracion || '') + '</td>' : '';
+    var estadoCol = tipo === 'rechazo' ? '<td style="padding:7px 10px;text-align:center;font-weight:bold">' + (a.estado || '') + '</td>' : '';
+    filasAnalisis += '<tr style="background:' + bg + '">'
+      + '<td style="padding:7px 10px;">' + (a.nombre || '') + '</td>'
+      + '<td style="padding:7px 10px;text-align:center;font-style:italic">' + spec + '</td>'
+      + '<td style="padding:7px 10px;text-align:center;font-weight:bold">' + (a.resultado || '') + '</td>'
+      + aclarCol + estadoCol + '</tr>';
+  }
+
+  var aclarTh  = mostrarAclar     ? '<th style="padding:9px 10px;text-align:center">Aclaracion</th>' : '';
+  var estadoTh = tipo === 'rechazo' ? '<th style="padding:9px 10px;text-align:center">Estado</th>'    : '';
+  var clienteRow = (mostrarCliente && d.cliente && tipo === 'analisis')
+    ? '<tr><td style="padding:5px 0;font-weight:bold;width:6cm">CLIENTE:</td><td style="padding:5px 0">' + d.cliente + '</td></tr>' : '';
+  var obsSection = (mostrarObs && d.observaciones)
+    ? '<div style="margin-top:12px;font-size:9pt;color:#444;line-height:1.5"><strong>Observaciones:</strong> ' + d.observaciones + '</div>' : '';
+
+  var infoRows = '<tr><td style="padding:5px 0;font-weight:bold;width:6cm">MATERIAL:</td><td style="padding:5px 0">' + (d.producto || '') + '</td></tr>'
+    + '<tr><td style="padding:5px 0;font-weight:bold">LOTE:</td><td style="padding:5px 0">' + (d.lote || '') + '</td></tr>';
+  if (tipo === 'analisis') {
+    infoRows += '<tr><td style="padding:5px 0;font-weight:bold">FECHA DE FABRICACION:</td><td style="padding:5px 0">' + fechaFab + '</td></tr>'
+      + '<tr><td style="padding:5px 0;font-weight:bold">FECHA DE VENCIMIENTO:</td><td style="padding:5px 0">' + fechaVenc + '</td></tr>';
+  } else {
+    infoRows += '<tr><td style="padding:5px 0;font-weight:bold">PROVEEDOR:</td><td style="padding:5px 0">' + (d.cliente || '') + '</td></tr>'
+      + '<tr><td style="padding:5px 0;font-weight:bold">FECHA:</td><td style="padding:5px 0">' + fecha.toLocaleDateString() + '</td></tr>';
+  }
+  infoRows += clienteRow;
+
+  var doc = window.open('', '_blank', 'width=960,height=750');
+  if (!doc) { toast('Permitir ventanas emergentes para imprimir', 'err'); return; }
+
+  doc.document.open();
+  doc.document.write('<!DOCTYPE html>');
+  doc.document.write('<html><head><meta charset="UTF-8"><title>' + titulo + '</title>');
+  doc.document.write('<style>');
+  doc.document.write('* { margin:0; padding:0; box-sizing:border-box; }');
+  doc.document.write('body { font-family:Arial,sans-serif; color:#2c2c2c; background:transparent; font-size:10pt; }');
+  doc.document.write('.page { width:21cm; min-height:29.7cm; margin:0 auto; padding:1.8cm 2.2cm 3.2cm 2.2cm; position:relative; }');
+  doc.document.write('.wm { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:16cm; height:16cm; opacity:0.12; z-index:0; pointer-events:none; }');
+  doc.document.write('.wm img { width:100%; height:100%; object-fit:contain; }');
+  doc.document.write('.ct { position:relative; z-index:1; }');
+  doc.document.write('.hdr { display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; margin-bottom:22px; }');
+  doc.document.write('.hdr img { height:3.5cm; object-fit:contain; }');
+  doc.document.write('.hdr h1 { font-size:14pt; font-weight:bold; text-align:center; flex:1; }');
+  doc.document.write('.it { margin:0 auto 22px auto; font-size:10pt; border-collapse:collapse; }');
+  doc.document.write('.at { width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:16px; }');
+  doc.document.write('.at thead th { padding:9px 10px; font-weight:bold; background:transparent; text-align:center; }');
+  doc.document.write('.at thead th:first-child { text-align:left; }');
   
-  let contenido = '';
-  if (ckEditorInst) contenido = ckEditorInst.getData();
-  else { const ta = document.querySelector('#ck-editor-target textarea'); contenido = ta ? ta.value : ''; }
-  
-  const logoUrl = currentLab?.logo_url || '';
-  const labNombre = currentLab?.nombre?.toUpperCase() || '';
-  const labDir = currentLab?.direccion || '';
-  const labTel = currentLab?.telefono || '';
-  
-  const win = window.open('', '_blank', 'width=900,height=700');
-  win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${titulo}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #333; background: white; }
-    .page { max-width: 800px; margin: 0 auto; padding: 30px 40px; position: relative; }
-    
-    /* MARCA DE AGUA */
-    .watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.06;
-      z-index: -1;
-      width: 70%;
-      text-align: center;
-      pointer-events: none;
-    }
-    .watermark img { width: 100%; max-width: 500px; }
-    
-    /* HEADER */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid #333;
-      padding-bottom: 15px;
-      margin-bottom: 25px;
-    }
-    .header img { height: 70px; object-fit: contain; }
-    .header h1 { font-size: 20px; font-weight: bold; text-transform: uppercase; text-align: center; flex: 1; letter-spacing: 1px; }
-    .header-spacer { width: 80px; }
-    
-    /* DATOS */
-    .datos { margin-bottom: 20px; line-height: 2; font-size: 13px; }
-    .datos p { margin: 2px 0; }
-    .datos strong { font-weight: bold; }
-    
-    /* TABLA */
-    table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
-    th { 
-      background: #f5f5f5; 
-      border: 1px solid #ccc; 
-      padding: 10px 12px; 
-      font-weight: bold; 
-      text-align: center;
-    }
-    th:first-child { text-align: left; }
-    td { border: 1px solid #ddd; padding: 9px 12px; }
-    td:first-child { text-align: left; }
-    td:not(:first-child) { text-align: center; }
-    tr:nth-child(even) td { background: #fafafa; }
-    .resultado { font-weight: bold; }
-    .aclaracion { font-size: 11px; color: #555; font-style: italic; }
-    
-    /* OBSERVACIONES */
-    .observaciones { 
-      margin-top: 15px; 
-      font-size: 11px; 
-      color: #444; 
-      line-height: 1.6;
-      padding: 10px;
-      border-left: 3px solid #ccc;
-    }
-    
-    /* FOOTER */
-    .footer {
-      margin-top: 50px;
-      border-top: 1px solid #ddd;
-      padding-top: 12px;
-      font-size: 10px;
-      color: #666;
-      text-align: center;
-      line-height: 1.6;
-    }
-    .footer strong { display: block; margin-bottom: 3px; font-size: 11px; color: #333; }
-    
-    @media print {
-      @page { margin: 1.5cm; size: A4; }
-      body { font-size: 12pt; }
-      .watermark { opacity: 0.05; }
-    }
-  </style>
-</head>
-<body>
-  <!-- MARCA DE AGUA -->
-  <div class="watermark">
-    <img src="${logoUrl}" onerror="this.style.display='none'">
-  </div>
-  
-  <div class="page">
-    <!-- HEADER -->
-    <div class="header">
-      <img src="${logoUrl}" onerror="this.style.display='none'" alt="${labNombre}">
-      <h1>${titulo}</h1>
-      <div class="header-spacer"></div>
-    </div>
-    
-    <!-- CONTENIDO DEL EDITOR -->
-    ${contenido}
-    
-    <!-- FOOTER -->
-    <div class="footer">
-      <p style="margin-bottom:8px; font-size:11px; color:#555; text-align:justify; line-height:1.5;">
-        ${footer}
-      </p>
-      <strong>${labNombre}</strong>
-      ${labDir ? labDir + (labTel ? ' — ' + labTel : '') : labTel}
-    </div>
-  </div>
-  
-  <script>
-    window.onload = function() { window.print(); }
-  </script>
-</body>
-</html>`);
-  win.document.close();
+  doc.document.write('.nota { font-size:8pt; line-height:1.5; margin-top:14px; }');
+  doc.document.write('.ftr { position:fixed; bottom:1.5cm; left:2.2cm; right:2.2cm; text-align:center; font-size:7.5pt; line-height:1.6; }');
+  doc.document.write('@media print { @page { size:A4; margin:0; } body { print-color-adjust:exact; -webkit-print-color-adjust:exact; } }');
+  doc.document.write('</style></head><body>');
+  doc.document.write('<div class="wm"><img src="' + watermarkUrl + '"></div>');
+  doc.document.write('<div class="page"><div class="ct">');
+  doc.document.write('<div class="hdr">');
+  doc.document.write('<img src="' + logoUrl + '">');
+  doc.document.write('<h1>' + titulo + '</h1>');
+  doc.document.write('<div style="width:3.5cm"></div>');
+  doc.document.write('</div>');
+  doc.document.write('<table class="it"><tbody>' + infoRows + '</tbody></table>');
+  doc.document.write('<table class="at"><thead><tr>');
+  doc.document.write('<th style="text-align:left;padding:9px 10px;">Analisis</th>');
+  doc.document.write('<th style="padding:9px 10px;">Parametros</th>');
+  doc.document.write('<th style="padding:9px 10px;">Resultados</th>');
+  doc.document.write(aclarTh + estadoTh);
+  doc.document.write('</tr></thead><tbody>' + filasAnalisis + '</tbody></table>');
+  doc.document.write(obsSection);
+  doc.document.write('<p class="nota">' + nota + '</p>');
+  doc.document.write('</div></div>');
+  doc.document.write('<div class="ftr"><strong>' + labNombre + '</strong><br>' + labDir + (labTel ? ' / ' + labTel : '') + (labEmail ? ' / Email: ' + labEmail : '') + '</div>');
+  doc.document.write('</body></html>');
+  doc.document.close();
+  setTimeout(function() { doc.print(); }, 1000);
 }
 
 // ============================================================
@@ -2067,6 +2001,159 @@ async function guardarConfig() {
   document.getElementById('cfg-pass').value = '';
   toast('Configuración guardada', 'ok');
 }
+
+
+async function buscarParamsGestion() {
+  var producto = document.getElementById('g-producto').value.trim().toUpperCase();
+  if (!producto) { toast('Ingrese un producto', 'err'); return; }
+  showLoader('Cargando...');
+  var res = await fetch(SUPABASE_URL + '/rest/v1/parametros?select=*&laboratorio_id=eq.' + currentLab.id + '&producto=eq.' + encodeURIComponent(producto) + '&order=id.asc', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var data = await res.json();
+  hideLoader();
+  if (!data || !data.length) { toast('No hay parametros para ese producto', 'err'); return; }
+  var container = document.getElementById('g-analisis-container');
+  container.innerHTML = '';
+  data.forEach(function(p, i) {
+    var div = document.createElement('div');
+    div.className = 'analisis-bloque';
+    div.dataset.idx = i;
+    div.dataset.paramId = p.id;
+    var html = '<div class="form-row"><div class="fg"><label>Analisis</label>';
+    html += '<input type="text" class="g-nombre" value="' + (p.analisis||'').replace(/"/g,'&quot;') + '" maxlength="500"></div></div>';
+    html += '<div class="form-row triple">';
+    html += '<div class="fg"><label>Minimo</label><input type="text" class="g-min" value="' + (p.minimo||'') + '" maxlength="200"></div>';
+    html += '<div class="fg"><label>Maximo</label><input type="text" class="g-max" value="' + (p.maximo||'') + '" maxlength="200"></div>';
+    html += '<div class="fg" style="display:flex;align-items:flex-end;padding-bottom:4px">';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;white-space:nowrap">';
+    html += '<input type="checkbox" class="g-coa"' + (p.incluir_en_coa !== false ? ' checked' : '') + '> En COA</label></div>';
+    html += '<div class="fg" style="justify-content:flex-end">';
+    html += '<button class="btn btn-danger btn-sm g-del" style="margin-top:20px" onclick="remBloque(this)"><i class="fas fa-trash"></i></button>';
+    html += '</div></div>';
+    html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';
+    div.innerHTML = html;
+    container.appendChild(div);
+  });
+  toast(data.length + ' analisis cargados', 'ok');
+}
+
+function limpiarGestion() {
+  document.getElementById('g-producto').value = '';
+  var c = document.getElementById('g-analisis-container');
+  c.innerHTML = '';
+  addBloque();
+}
+
+var _todosProductos = [];
+
+async function cargarListaProductosGestion() {
+  if (!currentLab) return;
+  var res = await fetch(SUPABASE_URL + '/rest/v1/parametros?select=producto&laboratorio_id=eq.' + currentLab.id, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var data = await res.json();
+  if (!data) return;
+  var prods = [];
+  data.forEach(function(d){ if (prods.indexOf(d.producto) < 0) prods.push(d.producto); });
+  _todosProductos = prods.sort();
+  // Setup search input listener
+  var inp = document.getElementById('g-producto');
+  if (inp && !inp._listenerSet) {
+    inp._listenerSet = true;
+    inp.addEventListener('input', function() {
+      filtrarProductosGestion(this.value);
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.getElementById('g-dropdown').style.display = 'none';
+      }
+    });
+  }
+}
+
+function filtrarProductosGestion(q) {
+  var dd = document.getElementById('g-dropdown');
+  if (!q || !q.trim()) { dd.style.display = 'none'; return; }
+  var upper = q.toUpperCase();
+  var filtered = _todosProductos.filter(function(p){ return p.toUpperCase().indexOf(upper) >= 0; });
+  if (!filtered.length) { dd.style.display = 'none'; return; }
+  var html = '';
+  filtered.forEach(function(p) {
+    html += '<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" '
+      + 'data-prod="' + p.replace(/"/g, '&quot;') + '">'
+      + p + '</div>';
+  });
+  dd.innerHTML = html;
+  dd.style.display = 'block';
+  dd.querySelectorAll('div').forEach(function(item) {
+    item.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var nombre = this.dataset.prod;
+      document.getElementById('g-producto').value = nombre;
+      dd.style.display = 'none';
+      buscarParamsGestion();
+    });
+  });
+}
+
+function selProdGestion(btn) {
+  document.getElementById('g-producto').value = btn.textContent;
+  buscarParamsGestion();
+}
+
+async function toggleCOASelector() {
+  var panel = document.getElementById('coa-filter-panel');
+  var btn = document.getElementById('btn-coa-sel');
+  if (!panel) return;
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    if (btn) btn.innerHTML = '<i class="fas fa-times"></i> Cerrar filtro';
+    var list = document.getElementById('coa-checks-list');
+    if (!list || !currentDesignData) return;
+    list.innerHTML = '<div style="color:var(--text2);font-size:12px">Cargando...</div>';
+
+    list.innerHTML = '';
+    (currentDesignData.analisis || []).forEach(function(a) {
+      // Use incluir_en_coa from analisis_resultados directly
+      var enCoa = a.incluir_en_coa !== false;
+      var label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;padding:3px 0';
+      label.innerHTML = '<input type="checkbox" class="coa-imp-check" data-aid="' + a.id + '"' + (enCoa ? ' checked' : '') + '> ' + (a.nombre || '');
+      list.appendChild(label);
+    });
+  } else {
+    panel.style.display = 'none';
+    if (btn) btn.innerHTML = '<i class="fas fa-filter"></i> Filtrar COA';
+  }
+}
+
+function mostrarBtnCOA() {
+  var btn = document.getElementById('btn-coa-sel');
+  if (btn) btn.style.display = 'inline-flex';
+}
+
+
+
+async function guardarSeleccionCOA() {
+  var checks = document.querySelectorAll('.coa-imp-check');
+  if (!checks.length) { toast('Abri el filtro primero', 'err'); return; }
+  showLoader('Guardando seleccion...');
+  var ops = [];
+  checks.forEach(function(cb) {
+    var aid = cb.dataset.aid;
+    if (!aid) return;
+    ops.push(fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?id=eq.' + aid, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ incluir_en_coa: cb.checked })
+    }));
+  });
+  await Promise.all(ops);
+  hideLoader();
+  toast('Seleccion guardada', 'ok');
+}
+
 </script>
 </body>
 </html>
