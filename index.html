@@ -466,10 +466,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
               <div class="config-checks">
                 <label><input type="checkbox" id="d-cliente" checked> Cliente</label>
                 <label><input type="checkbox" id="d-obs"> Observaciones</label>
-                <div id="motivo-rechazo-field" style="display:none;margin-top:10px">
-                  <label style="font-weight:600;display:block;margin-bottom:6px">Motivo del rechazo</label>
-                  <textarea id="d-motivo-rechazo" rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;resize:vertical" placeholder="Escriba el motivo del rechazo..."></textarea>
-                </div>
+
                 <label><input type="checkbox" id="d-aclar" checked> Aclaraciones</label>
               </div>
             </div>
@@ -490,6 +487,10 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           </div>
           <div class="ck-editor-wrap">
             <div id="ck-editor-target"></div>
+          </div>
+          <div id="motivo-rechazo-field" style="display:none;margin-top:16px">
+            <label style="font-weight:600;display:block;margin-bottom:6px;font-size:14px">Motivo del rechazo</label>
+            <textarea id="d-motivo-rechazo" rows="4" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;resize:vertical" placeholder="Escriba el motivo del rechazo..."></textarea>
           </div>
         </div>
       </div>
