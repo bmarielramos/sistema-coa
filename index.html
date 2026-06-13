@@ -1687,29 +1687,96 @@ function renderCalcBlock(coaId, calc, readOnly) {
         <div class="calc-result" id="cr-${calc.id}">${calc.resultado||'—'}</div>
         ${!readOnly?`<button class="btn btn-success btn-sm" onclick="calcIA(this,'${coaId}',${calc.id})"><i class="fas fa-calculator"></i> Calcular</button>`:''}
       </div>`;
+  
   } else if (calc.tipo === 'cc') {
-    var delBtnCC = !readOnly ? '<button class="btn btn-danger btn-sm cc-del-btn"><i class="fas fa-times"></i></button>' : '';
-    div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-      + '<input type="text" class="calc-nombre" placeholder="Nombre (ej: Concentracion)" value="' + (calc.nombre||'') + '" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px"' + (readOnly?' disabled':'') + '>'
-      + delBtnCC
-      + '</div>'
-      + '<div class="calc-fields">'
-      + '<div class="calc-field"><label>Volumen a preparar (ml)</label><input type="text" class="cf-vol" value="' + (campos.vol||'100') + '"' + (readOnly?' disabled':'') + '></div>'
-      + '<div class="calc-field"><label>Activo cantidad</label><input type="text" class="cf-act" value="' + (campos.act||'') + '"' + (readOnly?' disabled':'') + '></div>'
-      + '<div class="calc-field"><label>Unidad activo</label><select class="cf-uni"' + (readOnly?' disabled':'') + '><option' + (campos.uni==='g/L'?' selected':'') + '>g/L</option><option' + (campos.uni==='%'?' selected':'') + '>%</option></select></div>'
-      + '<div class="calc-field"><label>Pureza %</label><input type="text" class="cf-pur" value="' + (campos.pur||'100') + '"' + (readOnly?' disabled':'') + '></div>'
-      + '</div>'
-      + '<div style="display:flex;align-items:flex-start;gap:10px">'
-      + '<textarea class="calc-result" id="cr-' + calc.id + '" style="flex:1;height:80px;resize:vertical;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">' + (calc.resultado||'') + '</textarea>'
-      + (!readOnly ? '<button class="btn btn-success btn-sm" style="white-space:nowrap" onclick="calcCC(this,\'' + coaId + '\',' + calc.id + ')"><i class="fas fa-calculator"></i> Calcular</button>' : '')
-      + '</div>';
-  }
-  // Add delete listener to CC block
-  var delBtn = div.querySelector('.cc-del-btn');
-  if (delBtn) {
-    delBtn.addEventListener('click', function() {
-      eliminarCalcBlock(coaId, calc.id, this);
+    // Parse saved components
+    var compList = [];
+    if (campos.componentes) {
+      try { compList = JSON.parse(campos.componentes); } catch(e) {}
+    }
+    if (!compList.length) {
+      compList = [
+        { tipo: 'activo', nombre: '', cantidad: '', unidad: 'g/L', pureza: '100' },
+        { tipo: 'solvente', nombre: '', cantidad: '' }
+      ];
+    }
+
+    var compRows = '';
+    compList.forEach(function(c, ci) {
+      if (c.tipo === 'solvente') {
+        compRows += '<div class="cc-row" data-ci="' + ci + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:6px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">';
+        compRows += '<span style="font-size:11px;font-weight:700;color:#0891b2;min-width:70px">SOLVENTE</span>';
+        compRows += '<input type="text" class="cc-nombre" placeholder="Nombre (ej: Biodiesel)" value="' + (c.nombre||'') + '" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px"' + (readOnly?' disabled':'') + '>';
+        compRows += '<span style="font-size:11px;color:var(--text2)">A volumen</span>';
+        compRows += '<input type="hidden" class="cc-tipo" value="solvente">';
+        if (!readOnly) compRows += '<button class="cc-del" style="background:#dc2626;color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">x</button>';
+        compRows += '</div>';
+      } else {
+        var color = c.tipo === 'activo' ? '#7c3aed' : '#0891b2';
+        var label = c.tipo === 'activo' ? 'ACTIVO' : 'EMULS.';
+        compRows += '<div class="cc-row" data-ci="' + ci + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:6px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">';
+        compRows += '<span style="font-size:11px;font-weight:700;color:' + color + ';min-width:70px">' + label + '</span>';
+        compRows += '<input type="hidden" class="cc-tipo" value="' + c.tipo + '">';
+        compRows += '<input type="text" class="cc-nombre" placeholder="Nombre" value="' + (c.nombre||'') + '" style="flex:2;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px"' + (readOnly?' disabled':'') + '>';
+        compRows += '<input type="text" class="cc-cant" placeholder="Cant." value="' + (c.cantidad||'') + '" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px"' + (readOnly?' disabled':'') + '>';
+        compRows += '<select class="cc-unidad" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px"' + (readOnly?' disabled':'') + '>';
+        compRows += '<option' + (c.unidad==='g/L'?' selected':'') + '>g/L</option>';
+        compRows += '<option' + (c.unidad==='%'?' selected':'') + '>%</option>';
+        compRows += '<option' + (c.unidad==='g'?' selected':'') + '>g</option>';
+        compRows += '</select>';
+        if (c.tipo === 'activo') {
+          compRows += '<input type="text" class="cc-pureza" placeholder="Pureza%" value="' + (c.pureza||'100') + '" style="width:65px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px" title="Pureza %"' + (readOnly?' disabled':'') + '>';
+        } else {
+          compRows += '<input type="hidden" class="cc-pureza" value="100">';
+        }
+        if (!readOnly) compRows += '<button class="cc-del" style="background:#dc2626;color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">x</button>';
+        compRows += '</div>';
+      }
     });
+
+    var addBtns = !readOnly ? '<div style="display:flex;gap:8px;margin-bottom:10px">'
+      + '<button class="cc-add-activo btn btn-outline btn-sm">+ Activo</button>'
+      + '<button class="cc-add-emuls btn btn-outline btn-sm">+ Emulsionante/Otro</button>'
+      + '<button class="cc-add-solv btn btn-outline btn-sm">+ Solvente</button>'
+      + '</div>' : '';
+
+    div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      + '<input type="text" class="calc-nombre" placeholder="Nombre (ej: Formulacion)" value="' + (calc.nombre||'') + '" style="flex:1;margin-right:10px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px"' + (readOnly?' disabled':'') + '>'
+      + (!readOnly ? '<button class="cc-del-calc btn btn-danger btn-sm"><i class="fas fa-times"></i></button>' : '')
+      + '</div>'
+      + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'
+      + '<label style="font-size:12px;color:var(--text2);white-space:nowrap">Volumen total (ml):</label>'
+      + '<input type="text" class="cf-vol" value="' + (campos.vol||'1000') + '" style="width:100px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px"' + (readOnly?' disabled':'') + '>'
+      + '</div>'
+      + '<div class="cc-componentes">' + compRows + '</div>'
+      + addBtns
+      + '<div style="display:flex;align-items:flex-start;gap:10px;margin-top:8px">'
+      + '<textarea id="cr-' + calc.id + '" style="flex:1;min-height:100px;resize:vertical;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">' + (calc.resultado||'') + '</textarea>'
+      + (!readOnly ? '<button class="btn btn-success btn-sm cc-calcular-btn" style="white-space:nowrap"><i class="fas fa-calculator"></i> Calcular</button>' : '')
+      + '</div>';
+
+    // Add event listeners after innerHTML is set
+    setTimeout(function() {
+      // Delete component buttons
+      div.querySelectorAll('.cc-del').forEach(function(btn) {
+        btn.addEventListener('click', function() { this.closest('.cc-row').remove(); });
+      });
+      // Add activo
+      var addA = div.querySelector('.cc-add-activo');
+      if (addA) addA.addEventListener('click', function() { ccAddRow(div, 'activo'); });
+      // Add emulsionante
+      var addE = div.querySelector('.cc-add-emuls');
+      if (addE) addE.addEventListener('click', function() { ccAddRow(div, 'emulsionante'); });
+      // Add solvente
+      var addS = div.querySelector('.cc-add-solv');
+      if (addS) addS.addEventListener('click', function() { ccAddRow(div, 'solvente'); });
+      // Calcular
+      var calcBtn = div.querySelector('.cc-calcular-btn');
+      if (calcBtn) calcBtn.addEventListener('click', function() { calcCC(this, coaId, calc.id); });
+      // Delete calc
+      var delCalc = div.querySelector('.cc-del-calc');
+      if (delCalc) delCalc.addEventListener('click', function() { eliminarCalcBlock(coaId, calc.id, this); });
+    }, 0);
   }
   if (container) container.appendChild(div);
 }
@@ -2195,6 +2262,184 @@ function cerrarEditor() {
   if (ckEditorInst) { ckEditorInst.destroy(); ckEditorInst = null; }
 }
 function recargarEditor() { if (currentDesignData) generarHTMLEditor(); }
+
+async function guardarCalcs(coaId) {
+  var container = document.getElementById('calcs-' + coaId);
+  if (!container) return;
+  showLoader('Guardando calculadoras...');
+  var blocks = container.querySelectorAll('.calc-block');
+  var updates = [];
+  var NL = String.fromCharCode(10);
+  var textoCalcs = '';
+
+  blocks.forEach(function(block) {
+    var calcId = block.dataset.calcId;
+    var nombre = block.querySelector('.calc-nombre') ? block.querySelector('.calc-nombre').value : '';
+    var resultEl = block.querySelector('#cr-' + calcId);
+    var resultado = resultEl ? (resultEl.value || resultEl.textContent || '') : '';
+    resultado = resultado.trim();
+    var campos = {};
+
+    if (block.querySelector('.cf-pm')) {
+      var pm = block.querySelector('.cf-pm') ? block.querySelector('.cf-pm').value : '';
+      var gr = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
+      var ch = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
+      var vh = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
+      campos = { pm: pm, gr: gr, ch: ch, vh: vh };
+      if (resultado) {
+        textoCalcs += NL + (nombre || 'MATERIA ACTIVA') + ':' + NL;
+        if (pm) textoCalcs += '  PM: ' + pm + NL;
+        if (gr) textoCalcs += '  Gramos muestra: ' + gr + 'g' + NL;
+        if (ch) textoCalcs += '  Conc. Hyamine: ' + ch + NL;
+        if (vh) textoCalcs += '  Vol. Hyamine: ' + vh + 'ml' + NL;
+        textoCalcs += '  Resultado: ' + resultado + NL;
+      }
+    } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
+      var gr2 = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
+      var vh2 = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
+      var ch2 = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
+      campos = { gr: gr2, vh: vh2, ch: ch2 };
+      if (resultado) {
+        textoCalcs += NL + (nombre || 'INDICE AMINO') + ':' + NL;
+        if (gr2) textoCalcs += '  Gramos muestra: ' + gr2 + 'g' + NL;
+        if (vh2) textoCalcs += '  Vol. HCl: ' + vh2 + 'ml' + NL;
+        if (ch2) textoCalcs += '  Conc. HCl: ' + ch2 + NL;
+        textoCalcs += '  Resultado: ' + resultado + NL;
+      }
+    } else if (block.querySelector('.cf-vol')) {
+      var vol2 = block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '';
+      var comps = [];
+      block.querySelectorAll('.cc-comp-row').forEach(function(row) {
+        comps.push({
+          tipo: row.querySelector('.cc-tipo') ? row.querySelector('.cc-tipo').value : '',
+          nombre: row.querySelector('.cc-nombre') ? row.querySelector('.cc-nombre').value : '',
+          cantidad: row.querySelector('.cc-cant') ? row.querySelector('.cc-cant').value : '',
+          unidad: row.querySelector('.cc-unidad') ? row.querySelector('.cc-unidad').value : '%',
+          pureza: row.querySelector('.cc-pureza') ? row.querySelector('.cc-pureza').value : ''
+        });
+      });
+      var act2 = block.querySelector('.cf-act') ? block.querySelector('.cf-act').value : '';
+      var uni2 = block.querySelector('.cf-uni') ? block.querySelector('.cf-uni').value : 'g/L';
+      var pur2 = block.querySelector('.cf-pur') ? block.querySelector('.cf-pur').value : '100';
+      campos = { vol: vol2, act: act2, uni: uni2, pur: pur2, componentes: JSON.stringify(comps) };
+      if (resultado) textoCalcs += NL + (nombre || 'CONCENTRACION') + ':' + NL + resultado + NL;
+    }
+
+    updates.push(fetch(SUPABASE_URL + '/rest/v1/calculadoras?id=eq.' + calcId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ nombre: nombre, campos: campos, resultado: resultado })
+    }));
+  });
+
+  await Promise.all(updates);
+
+  if (textoCalcs) {
+    var obsEl = document.getElementById('obs-' + coaId);
+    if (obsEl) {
+      var marcador = NL + '--- CALCULOS ---';
+      var textoActual = obsEl.value || '';
+      var idx = textoActual.indexOf(marcador);
+      var textoBase = idx >= 0 ? textoActual.substring(0, idx).trimEnd() : textoActual.trimEnd();
+      obsEl.value = textoBase + marcador + NL + textoCalcs;
+    }
+  }
+
+  hideLoader();
+  toast('Calculadoras guardadas en observaciones', 'ok');
+}
+
+function calcMA(btn, coaId, calcId) {
+  const block = btn.closest('.calc-block');
+  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
+  const pm = pn(block.querySelector('.cf-pm')?.value);
+  const gr = pn(block.querySelector('.cf-gr')?.value);
+  const ch = pn(block.querySelector('.cf-ch')?.value);
+  const vh = pn(block.querySelector('.cf-vh')?.value);
+  if (!pm||!gr||!ch||!vh) { toast('Complete todos los campos', 'err'); return; }
+  const res = (ch * vh * pm) / gr;
+  document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
+}
+
+function calcIA(btn, coaId, calcId) {
+  const block = btn.closest('.calc-block');
+  const pn = v => parseFloat((v||'0').toString().replace(',','.')) || 0;
+  const gr = pn(block.querySelector('.cf-gr')?.value);
+  const vh = pn(block.querySelector('.cf-vh')?.value);
+  const ch = pn(block.querySelector('.cf-ch')?.value);
+  if (!gr||!vh||!ch) { toast('Complete todos los campos', 'err'); return; }
+  const res = (vh * ch * 56.1) / gr;
+  document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
+}
+
+
+function ccAddRow(div, tipo) {
+  var container = div.querySelector('.cc-componentes');
+  var row = document.createElement('div');
+  row.className = 'cc-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:6px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--border)';
+  var html = '';
+  if (tipo === 'solvente') {
+    html = '<span style="font-size:11px;font-weight:700;color:#0891b2;min-width:70px">SOLVENTE</span>'
+      + '<input type="text" class="cc-nombre" placeholder="Nombre (ej: Biodiesel)" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px">'
+      + '<span style="font-size:11px;color:var(--text2)">A volumen</span>'
+      + '<input type="hidden" class="cc-tipo" value="solvente">';
+  } else {
+    var color = tipo === 'activo' ? '#7c3aed' : '#0891b2';
+    var label = tipo === 'activo' ? 'ACTIVO' : 'EMULS.';
+    html = '<span style="font-size:11px;font-weight:700;color:' + color + ';min-width:70px">' + label + '</span>'
+      + '<input type="hidden" class="cc-tipo" value="' + tipo + '">'
+      + '<input type="text" class="cc-nombre" placeholder="Nombre" style="flex:2;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px">'
+      + '<input type="text" class="cc-cant" placeholder="Cant." style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px">'
+      + '<select class="cc-unidad" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px">'
+      + '<option>g/L</option><option>%</option><option>g</option></select>';
+    if (tipo === 'activo') {
+      html += '<input type="text" class="cc-pureza" placeholder="Pureza%" value="100" style="width:65px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px" title="Pureza %">';
+    } else {
+      html += '<input type="hidden" class="cc-pureza" value="100">';
+    }
+  }
+  html += '<button class="cc-del" style="background:#dc2626;color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">x</button>';
+  row.innerHTML = html;
+  row.querySelector('.cc-del').addEventListener('click', function() { this.closest('.cc-row').remove(); });
+  container.appendChild(row);
+}
+
+function calcCC(btn, coaId, calcId) {
+  var block = btn.closest('.calc-block');
+  var pn = function(v) { return parseFloat((v||'0').toString().replace(',','.')) || 0; };
+  var vol = pn(block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '1000');
+  if (!vol) { toast('Ingrese el volumen total', 'err'); return; }
+  var NL = String.fromCharCode(10);
+  var rows = block.querySelectorAll('.cc-row');
+  var lineas = ['CONCENTRADO DE ' + vol + ' ml:'];
+  var hasSolvente = false;
+  rows.forEach(function(row) {
+    var tipo = row.querySelector('.cc-tipo') ? row.querySelector('.cc-tipo').value : '';
+    var nombre = row.querySelector('.cc-nombre') ? row.querySelector('.cc-nombre').value.trim() : '';
+    var cant = pn(row.querySelector('.cc-cant') ? row.querySelector('.cc-cant').value : '0');
+    var unidad = row.querySelector('.cc-unidad') ? row.querySelector('.cc-unidad').value : 'g/L';
+    var pureza = pn(row.querySelector('.cc-pureza') ? row.querySelector('.cc-pureza').value : '100') || 100;
+    if (tipo === 'solvente') {
+      hasSolvente = true;
+      lineas.push('  ' + (nombre||'Solvente') + ': A volumen ' + vol + ' ml');
+      return;
+    }
+    if (!cant) return;
+    var gramos;
+    if (unidad === 'g/L') gramos = (cant * vol) / 1000;
+    else if (unidad === '%') gramos = (cant / 100) * vol;
+    else gramos = cant;
+    if (tipo === 'activo' && pureza !== 100) gramos = gramos / (pureza / 100);
+    var suffix = tipo === 'activo' && pureza !== 100 ? ' (pureza ' + pureza + '%)' : '';
+    lineas.push('  ' + (nombre||tipo) + ': ' + cant + ' ' + unidad + suffix + ' -> ' + gramos.toFixed(4) + ' g');
+  });
+  if (!hasSolvente) lineas.push('  Solvente: A volumen ' + vol + ' ml');
+  var res = lineas.join(NL);
+  var el = document.getElementById('cr-' + calcId);
+  if (el) el.value = res;
+}
+
 </script>
 </body>
 </html>
