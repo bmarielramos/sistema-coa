@@ -1114,13 +1114,13 @@ async function abrirCOATab(id, nombre, datos = null) {
 
   // Cargar datos completos
   if (!datos) {
-    const _at2Res = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const _at2Res = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
     const _at2Data = await _at2Res.json();
     datos = Array.isArray(_at2Data) ? _at2Data[0] : _at2Data;
   }
-  const _xaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _xaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(id)}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const analisis = await _xaRes.json();
-  const _xcRes = await fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _xcRes = await fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const calcs = await _xcRes.json();
   renderCOAPane(pane, id, datos, analisis || [], calcs || []);
 }
@@ -1365,7 +1365,7 @@ function modalModCabecera(id) {
       operador: document.getElementById('mc-op').value.trim().toUpperCase(),
       motivo: document.getElementById('mc-mot').value.trim().toUpperCase()
     };
-    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${id}`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
       body: JSON.stringify(updates)
@@ -1591,7 +1591,7 @@ function renderBuscarResults(data) {
 }
 
 async function togglePasado(certId, cb) {
-  await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${certId}`, {
+  await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${encodeURIComponent(certId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
     body: JSON.stringify({ pasado: cb.checked })
@@ -1601,10 +1601,10 @@ async function togglePasado(certId, cb) {
 
 async function verCertFinalizado(id) {
   showLoader('Cargando...');
-  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const _vcData = await _vcRes.json();
   const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
-  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(id)}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const analisis = await _vaRes.json();
   hideLoader();
   const bc = cert.estado==='APROBADO'?'badge-ok':cert.estado==='DESAPROBADO'?'badge-err':'badge-proc';
@@ -1993,10 +1993,10 @@ function imprimirCert() {
 // ============================================================
 async function enviarEmail(certId) {
   showLoader('Cargando datos del certificado...');
-  const _emcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${certId}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _emcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(certId)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const _emcData = await _emcRes.json();
   const cert = Array.isArray(_emcData) ? _emcData[0] : _emcData;
-  const _emaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${certId}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _emaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(certId)}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const analisis = await _emaRes.json();
   hideLoader();
   const emails = (currentLab.email_destino || '').split(',').map(e => e.trim());
@@ -2033,7 +2033,7 @@ async function loadConfig() {
   document.getElementById('cfg-dir').value = currentLab.direccion || '';
   document.getElementById('cfg-tel').value = currentLab.telefono || '';
   document.getElementById('cfg-email').value = currentLab.email_destino || '';
-  document.getElementById('cfg-user').value = currentLab.usuario || '';
+  // cfg-user removed
 }
 
 async function guardarConfig() {
@@ -2267,10 +2267,10 @@ async function eliminarCalcBlock(coaId, calcId, btn) {
 
 async function cargarEnEditor(id) {
   showLoader('Cargando en editor...');
-  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${id}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const _vcData = await _vcRes.json();
   const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
-  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${id}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(id)}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const analisis = await _vaRes.json();
   hideLoader();
   currentDesignData = { ...cert, analisis: analisis || [] };
