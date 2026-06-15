@@ -343,7 +343,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <button class="tab-btn" data-tab="buscar" onclick="switchTab('buscar',this)"><i class="fas fa-search"></i> Buscar</button>
     <button class="tab-btn" data-tab="gestion" onclick="switchTab('gestion',this);cargarListaProductosGestion()"><i class="fas fa-cogs"></i> Gestión</button>
     <button class="tab-btn" data-tab="disenio" onclick="switchTab('disenio',this)"><i class="fas fa-print"></i> Diseñar</button>
-    <button class="tab-btn" id="tab-btn-formulas" data-tab="formulas" onclick="switchTab('formulas',this);initFormulasTab()"><i class="fas fa-flask"></i> F&oacute;rmulas</button>
+    <button class="tab-btn" id="tab-btn-formulas" data-tab="formulas" onclick="switchTab('formulas',this);initFormulasTab()"><i class="fas fa-flask"></i> Formuleo</button>
     <button class="tab-btn" id="tab-btn-config" data-tab="config" onclick="switchTab('config',this)"><i class="fas fa-sliders-h"></i> Config</button>
   </div>
 
@@ -534,7 +534,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <!-- ===== FÓRMULAS ===== -->
     <div class="tab-pane" id="tab-formulas">
       <div class="card">
-        <h3><i class="fas fa-flask"></i> F&oacute;rmulas y Preparaciones</h3>
+        <h3><i class="fas fa-flask"></i> Formuleo</h3>
         <!-- Lock screen -->
         <div id="formulas-lock-screen" class="formulas-lock">
           <div class="formulas-lock-card">
@@ -603,19 +603,35 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
             <label>Emails destino (separados por coma)</label>
             <input type="text" id="cfg-email">
           </div>
-          <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-          <h4 style="margin-bottom:12px;font-size:14px;font-weight:600">Cambiar Credenciales</h4>
+          <button class="btn btn-primary" onclick="guardarConfig()"><i class="fas fa-save"></i> Guardar Configuración</button>
+          <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
+          <h4 style="margin-bottom:4px;font-size:14px;font-weight:700">🔑 Cambiar contraseña — Ferarquímica</h4>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Ingresá la contraseña actual para confirmar el cambio.</p>
           <div class="form-row">
             <div class="fg">
-              <label>Nuevo Usuario</label>
-              <input type="text" id="cfg-user">
+              <label>Contraseña actual (Ferarquímica)</label>
+              <input type="password" id="cfg-pass-confirm" placeholder="Contraseña actual">
             </div>
             <div class="fg">
-              <label>Nueva Contraseña</label>
-              <input type="password" id="cfg-pass">
+              <label>Nueva contraseña</label>
+              <input type="password" id="cfg-pass" placeholder="Nueva contraseña">
             </div>
           </div>
-          <button class="btn btn-primary" onclick="guardarConfig()"><i class="fas fa-save"></i> Guardar Configuración</button>
+          <button class="btn btn-outline" onclick="cambiarPassword('ferarquimica')"><i class="fas fa-key"></i> Cambiar contraseña Ferarquímica</button>
+          <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
+          <h4 style="margin-bottom:4px;font-size:14px;font-weight:700">🔑 Cambiar contraseña — Emulpar</h4>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px">También requiere confirmar con la contraseña actual de Ferarquímica.</p>
+          <div class="form-row">
+            <div class="fg">
+              <label>Contraseña actual (Ferarquímica)</label>
+              <input type="password" id="cfg-pass-confirm-emulpar" placeholder="Contraseña actual Ferarquímica">
+            </div>
+            <div class="fg">
+              <label>Nueva contraseña Emulpar</label>
+              <input type="password" id="cfg-pass-emulpar" placeholder="Nueva contraseña Emulpar">
+            </div>
+          </div>
+          <button class="btn btn-outline" onclick="cambiarPassword('emulpar')"><i class="fas fa-key"></i> Cambiar contraseña Emulpar</button>
         </div>
       </div>
     </div>
@@ -2060,14 +2076,10 @@ async function guardarConfig() {
     telefono: document.getElementById('cfg-tel').value.trim(),
     email_destino: document.getElementById('cfg-email').value.trim(),
   };
-  const newUser = document.getElementById('cfg-user').value.trim();
-  const newPass = document.getElementById('cfg-pass').value.trim();
-  if (newUser) updates.usuario = newUser;
-  if (newPass) updates.password_hash = newPass;
   showLoader('Guardando configuración...');
   const _cfgRes = await fetch(`${SUPABASE_URL}/rest/v1/laboratorios?id=eq.${currentLab.id}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' }  ,
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
     body: JSON.stringify(updates)
   });
   const error = _cfgRes.ok ? null : { message: 'Error ' + _cfgRes.status };
@@ -2076,8 +2088,34 @@ async function guardarConfig() {
   currentLab = { ...currentLab, ...updates };
   document.getElementById('topLogo').src = updates.logo_url;
   document.getElementById('topTitle').textContent = updates.nombre;
-  document.getElementById('cfg-pass').value = '';
   toast('Configuración guardada', 'ok');
+}
+
+async function cambiarPassword(labTarget) {
+  var confirmId = labTarget === 'emulpar' ? 'cfg-pass-confirm-emulpar' : 'cfg-pass-confirm';
+  var newPassId = labTarget === 'emulpar' ? 'cfg-pass-emulpar' : 'cfg-pass';
+  var confirmPass = document.getElementById(confirmId).value.trim();
+  var newPass = document.getElementById(newPassId).value.trim();
+  if (!confirmPass || !newPass) { toast('Completá ambos campos', 'err'); return; }
+  // Verify current Ferarquimica password
+  if (confirmPass !== currentLab.password_hash) {
+    toast('Contraseña actual incorrecta', 'err');
+    document.getElementById(confirmId).value = '';
+    return;
+  }
+  // Update target lab password
+  showLoader('Cambiando contraseña...');
+  var res = await fetch(SUPABASE_URL + '/rest/v1/laboratorios?id=eq.' + labTarget, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ password_hash: newPass })
+  });
+  hideLoader();
+  if (!res.ok) { toast('Error al cambiar contraseña', 'err'); return; }
+  document.getElementById(confirmId).value = '';
+  document.getElementById(newPassId).value = '';
+  if (labTarget === 'ferarquimica') currentLab.password_hash = newPass;
+  toast('Contraseña de ' + (labTarget === 'emulpar' ? 'Emulpar' : 'Ferarquímica') + ' actualizada ✓', 'ok');
 }
 
 
@@ -2537,18 +2575,17 @@ var _formulasUnlocked = false;
 var FORMULAS_PASS = 'formulas2025'; // Cambiar esta clave
 
 function initFormulasTab() {
-  if (_formulasUnlocked) {
-    cargarFormulasLab();
-    return;
-  }
-  // Show lock screen
+  // Siempre pedir contraseña al entrar
+  _formulasUnlocked = false;
   var lock = document.getElementById('formulas-lock-screen');
   var cont = document.getElementById('formulas-content');
   if (lock) lock.style.display = 'flex';
   if (cont) cont.style.display = 'none';
+  var err = document.getElementById('formulas-lock-err');
+  if (err) err.style.display = 'none';
   setTimeout(function() {
     var inp = document.getElementById('formulas-pass-input');
-    if (inp) inp.focus();
+    if (inp) { inp.value = ''; inp.focus(); }
   }, 100);
 }
 
