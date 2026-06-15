@@ -2109,13 +2109,19 @@ async function cambiarPassword(labTarget) {
   var confirmPass = document.getElementById(confirmId).value.trim();
   var newPass = document.getElementById(newPassId).value.trim();
   if (!confirmPass || !newPass) { toast('Completá ambos campos', 'err'); return; }
-  // Verify current Ferarquimica password
-  if (confirmPass !== currentLab.password_hash) {
+  // Verificar contraseña actual de Ferarquímica directo en Supabase
+  showLoader('Verificando...');
+  var checkRes = await fetch(SUPABASE_URL + '/rest/v1/laboratorios?id=eq.ferarquimica&select=password_hash', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Accept': 'application/vnd.pgrst.object+json' }
+  });
+  var checkData = await checkRes.json();
+  hideLoader();
+  if (!checkRes.ok || !checkData || checkData.password_hash !== confirmPass) {
     toast('Contraseña actual incorrecta', 'err');
     document.getElementById(confirmId).value = '';
     return;
   }
-  // Update target lab password
+  // Actualizar contraseña del laboratorio destino
   showLoader('Cambiando contraseña...');
   var res = await fetch(SUPABASE_URL + '/rest/v1/laboratorios?id=eq.' + labTarget, {
     method: 'PATCH',
