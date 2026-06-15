@@ -610,11 +610,17 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           <div class="form-row">
             <div class="fg">
               <label>Contraseña actual (Ferarquímica)</label>
-              <input type="password" id="cfg-pass-confirm" placeholder="Contraseña actual">
+              <div style="position:relative">
+                <input type="password" id="cfg-pass-confirm" placeholder="Contraseña actual" style="padding-right:40px;width:100%">
+                <button type="button" onclick="var i=document.getElementById('cfg-pass-confirm');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2)">&#128065;</button>
+              </div>
             </div>
             <div class="fg">
               <label>Nueva contraseña</label>
-              <input type="password" id="cfg-pass" placeholder="Nueva contraseña">
+              <div style="position:relative">
+                <input type="password" id="cfg-pass" placeholder="Nueva contraseña" style="padding-right:40px;width:100%">
+                <button type="button" onclick="var i=document.getElementById('cfg-pass');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2)">&#128065;</button>
+              </div>
             </div>
           </div>
           <button class="btn btn-outline" onclick="cambiarPassword('ferarquimica')"><i class="fas fa-key"></i> Cambiar contraseña Ferarquímica</button>
@@ -624,11 +630,17 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           <div class="form-row">
             <div class="fg">
               <label>Contraseña actual (Ferarquímica)</label>
-              <input type="password" id="cfg-pass-confirm-emulpar" placeholder="Contraseña actual Ferarquímica">
+              <div style="position:relative">
+                <input type="password" id="cfg-pass-confirm-emulpar" placeholder="Contraseña actual Ferarquímica" style="padding-right:40px;width:100%">
+                <button type="button" onclick="var i=document.getElementById('cfg-pass-confirm-emulpar');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2)">&#128065;</button>
+              </div>
             </div>
             <div class="fg">
               <label>Nueva contraseña Emulpar</label>
-              <input type="password" id="cfg-pass-emulpar" placeholder="Nueva contraseña Emulpar">
+              <div style="position:relative">
+                <input type="password" id="cfg-pass-emulpar" placeholder="Nueva contraseña Emulpar" style="padding-right:40px;width:100%">
+                <button type="button" onclick="var i=document.getElementById('cfg-pass-emulpar');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2)">&#128065;</button>
+              </div>
             </div>
           </div>
           <button class="btn btn-outline" onclick="cambiarPassword('emulpar')"><i class="fas fa-key"></i> Cambiar contraseña Emulpar</button>
