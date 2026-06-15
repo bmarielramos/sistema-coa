@@ -252,6 +252,40 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
   table.data-table{font-size:14px}
   table.data-table th,table.data-table td{padding:11px 16px}
 }
+
+/* ============ FÓRMULAS TAB ============ */
+.form-search-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 13px 9px 36px;width:100%;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238a94b0'%3E%3Cpath fill-rule='evenodd' d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:15px;background-position:10px center;margin-bottom:12px}
+.form-search-box:focus{border-color:var(--accent)}
+.fam-chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .18s;white-space:nowrap}
+.fam-chip:hover,.fam-chip.active{border-color:var(--accent);color:#fff;background:var(--accent)}
+.formula-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:border-color .18s,transform .18s,box-shadow .18s}
+.formula-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(124,58,237,.12)}
+.fc-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.3;flex:1}
+.fc-fam{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:rgba(124,58,237,.12);color:var(--accent)}
+.formula-detail-panel{position:fixed;top:0;right:0;bottom:0;width:480px;max-width:95vw;background:var(--bg2);border-left:1px solid var(--border);z-index:600;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;box-shadow:-8px 0 32px rgba(0,0,0,.15)}
+.formula-detail-panel.open{transform:translateX(0)}
+.fdp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:599;display:none}
+.fdp-overlay.open{display:block}
+.fdp-header{position:sticky;top:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px;z-index:1}
+.fdp-close{position:absolute;top:12px;right:14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px}
+.fdp-body{padding:20px}
+.fdp-section{margin-bottom:20px}
+.fdp-section-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px}
+.ing-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.ing-tbl th{font-size:10px;font-weight:700;color:var(--text2);padding:4px 8px;border-bottom:1px solid var(--border);text-align:left}
+.ing-tbl td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px}
+.ing-tbl td:last-child{text-align:right;font-weight:700;color:var(--success);font-family:monospace}
+.ing-tbl tr:last-child td{border-bottom:none}
+.notas-pre{font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border);max-height:260px;overflow-y:auto}
+.formula-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.formulas-layout{display:flex;gap:20px}
+.formulas-sidebar{width:220px;flex-shrink:0}
+.formulas-main{flex:1;min-width:0}
+@media(max-width:768px){.formulas-layout{flex-direction:column}.formulas-sidebar{width:100%}.formula-grid{grid-template-columns:1fr}.formula-detail-panel{width:100vw}}
+/* Lock screen */
+.formulas-lock{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:16px}
+.formulas-lock-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:32px;text-align:center;max-width:360px;width:100%}
+
 </style>
 </head>
 <body>
@@ -309,7 +343,8 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <button class="tab-btn" data-tab="buscar" onclick="switchTab('buscar',this)"><i class="fas fa-search"></i> Buscar</button>
     <button class="tab-btn" data-tab="gestion" onclick="switchTab('gestion',this);cargarListaProductosGestion()"><i class="fas fa-cogs"></i> Gestión</button>
     <button class="tab-btn" data-tab="disenio" onclick="switchTab('disenio',this)"><i class="fas fa-print"></i> Diseñar</button>
-    <button class="tab-btn" data-tab="config" onclick="switchTab('config',this)"><i class="fas fa-sliders-h"></i> Config</button>
+    <button class="tab-btn" id="tab-btn-formulas" data-tab="formulas" onclick="switchTab('formulas',this);initFormulasTab()"><i class="fas fa-flask"></i> F&oacute;rmulas</button>
+    <button class="tab-btn" id="tab-btn-config" data-tab="config" onclick="switchTab('config',this)"><i class="fas fa-sliders-h"></i> Config</button>
   </div>
 
   <!-- TAB CONTENT -->
@@ -491,6 +526,49 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           <div id="motivo-rechazo-field" style="display:none;margin-top:16px">
             <label style="font-weight:600;display:block;margin-bottom:6px;font-size:14px">Motivo del rechazo</label>
             <textarea id="d-motivo-rechazo" rows="4" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;resize:vertical" placeholder="Escriba el motivo del rechazo..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FÓRMULAS ===== -->
+    <div class="tab-pane" id="tab-formulas">
+      <div class="card">
+        <h3><i class="fas fa-flask"></i> F&oacute;rmulas y Preparaciones</h3>
+        <!-- Lock screen -->
+        <div id="formulas-lock-screen" class="formulas-lock">
+          <div class="formulas-lock-card">
+            <i class="fas fa-lock" style="font-size:2rem;color:var(--accent);margin-bottom:12px"></i>
+            <h3 style="margin-bottom:8px">Acceso restringido</h3>
+            <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Ingres&aacute; la contrase&ntilde;a para ver las f&oacute;rmulas</p>
+            <div style="position:relative;margin-bottom:12px">
+              <input type="password" id="formulas-pass-input" placeholder="Contrase&ntilde;a" class="fi" style="padding-right:42px"
+                onkeydown="if(event.key==='Enter')verificarClaveFormulas()">
+              <button type="button" onclick="var i=document.getElementById('formulas-pass-input');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text2)">&#128065;</button>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="verificarClaveFormulas()"><i class="fas fa-unlock"></i> Ingresar</button>
+            <div id="formulas-lock-err" style="color:var(--danger);font-size:12px;margin-top:8px;display:none">Contrase&ntilde;a incorrecta</div>
+          </div>
+        </div>
+        <!-- Contenido real -->
+        <div id="formulas-content" style="display:none">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+            <div style="position:relative;flex:1;min-width:200px">
+              <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:14px"></i>
+              <input type="text" id="form-search" placeholder="Buscar fórmula, ingrediente, activo..." 
+                style="width:100%;padding:10px 12px 10px 36px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:14px;outline:none">
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px" id="fam-chips">
+              <span class="fam-chip active" data-fam="all">Todas</span>
+            </div>
+          </div>
+          <div id="formulas-loader" style="text-align:center;padding:40px;color:var(--text2)">
+            <div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px"></div>Cargando fórmulas...
+          </div>
+          <div id="formulas-count" style="font-size:12px;color:var(--text2);margin-bottom:8px;display:none"></div>
+          <div id="formula-list"></div>
+          <div id="formulas-empty" style="display:none;text-align:center;padding:40px;color:var(--text2)">
+            <i class="fas fa-search" style="font-size:2rem;margin-bottom:12px;opacity:.4"></i><br>Sin resultados
           </div>
         </div>
       </div>
@@ -815,6 +893,12 @@ async function doLogin() {
   document.getElementById('topLogo').src = data.logo_url;
   document.getElementById('topTitle').textContent = data.nombre;
   document.getElementById('topLabBadge').textContent = data.id === 'ferarquimica' ? '🇦🇷 Argentina' : '🇵🇾 Paraguay';
+  // Ocultar tabs restringidas para Emulpar
+  var isEmulpar = data.id === 'emulpar';
+  var btnConfig = document.getElementById('tab-btn-config');
+  var btnFormulas = document.getElementById('tab-btn-formulas');
+  if (btnConfig) btnConfig.style.display = isEmulpar ? 'none' : '';
+  if (btnFormulas) btnFormulas.style.display = isEmulpar ? 'none' : '';
   // Apply lab-specific theme
   if (data.id === 'emulpar') {
     document.documentElement.style.setProperty('--accent', '#0891b2');
@@ -1915,6 +1999,7 @@ function imprimirCert() {
   doc.document.write('</div></div>');
   doc.document.write('<div class="ftr"><strong>' + labNombre + '</strong><br>' + labDir + (labTel ? ' / ' + labTel : '') + (labEmail ? ' / Email: ' + labEmail : '') + '</div>');
   doc.document.write('</body></html>');
+
   doc.document.close();
   setTimeout(function() { doc.print(); }, 1000);
 }
@@ -2440,6 +2525,246 @@ function calcCC(btn, coaId, calcId) {
   if (el) el.value = res;
 }
 
+
+
+// ============================================================
+// MÓDULO FÓRMULAS
+// ============================================================
+var _allFormulas = [];
+var _formFamFilter = 'all';
+var _formulasLoaded = false;
+var _formulasUnlocked = false;
+var FORMULAS_PASS = 'formulas2025'; // Cambiar esta clave
+
+function initFormulasTab() {
+  if (_formulasUnlocked) {
+    cargarFormulasLab();
+    return;
+  }
+  // Show lock screen
+  var lock = document.getElementById('formulas-lock-screen');
+  var cont = document.getElementById('formulas-content');
+  if (lock) lock.style.display = 'flex';
+  if (cont) cont.style.display = 'none';
+  setTimeout(function() {
+    var inp = document.getElementById('formulas-pass-input');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+function verificarClaveFormulas() {
+  var inp = document.getElementById('formulas-pass-input');
+  var err = document.getElementById('formulas-lock-err');
+  if (!inp) return;
+  if (inp.value === FORMULAS_PASS) {
+    _formulasUnlocked = true;
+    var lock = document.getElementById('formulas-lock-screen');
+    var cont = document.getElementById('formulas-content');
+    if (lock) lock.style.display = 'none';
+    if (cont) cont.style.display = 'block';
+    inp.value = '';
+    if (err) err.style.display = 'none';
+    cargarFormulasLab();
+    // Setup search
+    var searchInp = document.getElementById('form-search');
+    if (searchInp && !searchInp._listenerSet) {
+      searchInp._listenerSet = true;
+      searchInp.addEventListener('input', filtrarFormulas);
+    }
+  } else {
+    if (err) err.style.display = 'block';
+    inp.value = '';
+    inp.focus();
+  }
+}
+
+async function cargarFormulasLab() {
+  if (_formulasLoaded || !currentLab) return;
+  var loader = document.getElementById('formulas-loader');
+  try {
+    var fRes = await fetch(SUPABASE_URL + '/rest/v1/formulas?select=id,nombre,familia,formula_json,analisis_json,comentarios&laboratorio_id=eq.' + currentLab.id + '&order=nombre.asc',
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    // ingredientes now in formula_json column
+    var formulas = await fRes.json();
+    if (!Array.isArray(formulas)) throw new Error('Error al cargar formulas');
+    _allFormulas = formulas;
+    _formulasLoaded = true;
+    _buildFamChips();
+    _renderFormulaGrid(_allFormulas);
+    if (loader) loader.style.display = 'none';
+    var cnt = document.getElementById('formulas-count');
+    if (cnt) cnt.style.display = 'block';
+    _updateFormStats();
+  } catch(e) {
+    if (loader) loader.innerHTML = '<p style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> Error: ' + e.message + '</p>';
+  }
+}
+
+function _buildFamChips() {
+  var fams = new Set();
+  _allFormulas.forEach(function(f) { if (f.familia) fams.add(f.familia); });
+  var container = document.getElementById('fam-chips');
+  if (!container) return;
+  container.innerHTML = '<span class="fam-chip active" data-fam="all" onclick="setFamFilter(\'all\',this)">Todas</span>';
+  Array.from(fams).sort().forEach(function(fam) {
+    var chip = document.createElement('span');
+    chip.className = 'fam-chip';
+    chip.dataset.fam = fam;
+    chip.textContent = fam;
+    chip.onclick = function() { setFamFilter(fam, this); };
+    container.appendChild(chip);
+  });
+}
+
+function setFamFilter(fam, el) {
+  _formFamFilter = fam;
+  document.querySelectorAll('#fam-chips .fam-chip').forEach(function(c) { c.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  filtrarFormulas();
+}
+
+function _getFilteredFormulas() {
+  var q = ((document.getElementById('form-search') || {}).value || '').toLowerCase().trim();
+  return _allFormulas.filter(function(f) {
+    var okFam = _formFamFilter === 'all' || f.familia === _formFamFilter;
+    var okQ = !q || f.nombre.toLowerCase().indexOf(q) >= 0
+      || (f.activos || []).some(function(a) { return a.toLowerCase().indexOf(q) >= 0; })
+      || (f.ingredientes || []).some(function(i) { return i.nombre.toLowerCase().indexOf(q) >= 0; });
+    return okFam && okQ;
+  });
+}
+
+function filtrarFormulas() {
+  var filtered = _getFilteredFormulas();
+  _updateFormStats(filtered);
+  _renderFormulaGrid(filtered);
+}
+
+function _updateFormStats(filtered) {
+  var vis = filtered || _getFilteredFormulas();
+  var t = document.getElementById('fs-total'); if (t) t.textContent = _allFormulas.length;
+  var s = document.getElementById('fs-showing'); if (s) s.textContent = vis.length;
+}
+
+function _renderFormulaGrid(formulas) {
+  var list = document.getElementById('formula-list');
+  var empty = document.getElementById('formulas-empty');
+  var count = document.getElementById('formulas-count');
+  if (!list) return;
+  if (!formulas.length) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    if (count) count.textContent = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (count) { count.textContent = formulas.length + ' fórmula' + (formulas.length !== 1 ? 's' : ''); count.style.display = 'block'; }
+  list.innerHTML = formulas.map(function(f) {
+    var hasFormula = f.formula_json && f.formula_json.length > 0;
+    var hasAnalisis = f.analisis_json && f.analisis_json.length > 0;
+    return '<div class="fml-row" data-fid="' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:600;color:var(--text)">' + f.nombre + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'
+      + (hasFormula ? '<span style="font-size:10px;padding:1px 6px;background:rgba(124,58,237,.1);color:var(--accent);border-radius:4px;border:1px solid rgba(124,58,237,.2)">Fórmula</span>' : '')
+      + (hasAnalisis ? '<span style="font-size:10px;padding:1px 6px;background:rgba(16,185,129,.1);color:#10b981;border-radius:4px;border:1px solid rgba(16,185,129,.2)">Análisis</span>' : '')
+      + (f.familia ? '<span style="font-size:10px;padding:1px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text2)">' + f.familia + '</span>' : '')
+      + '<i class="fas fa-chevron-right" style="color:var(--text2);font-size:11px"></i>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+  list.querySelectorAll('.fml-row').forEach(function(row) {
+    row.addEventListener('click', function() { abrirFormulaDetail(parseInt(this.dataset.fid)); });
+    row.addEventListener('mouseenter', function() { this.style.background = 'var(--bg3)'; });
+    row.addEventListener('mouseleave', function() { this.style.background = ''; });
+  });
+}
+
+function renderJsonTable(data, emptyMsg) {
+  if (!data || !data.length) return '<p style="font-size:12px;color:var(--text2);font-style:italic">' + (emptyMsg||'Sin datos') + '</p>';
+  var html = '';
+  data.forEach(function(tbl, ti) {
+    if (!tbl || !tbl.length) return;
+    // Detect if first row is header (all caps or short labels)
+    html += '<table class="ing-tbl" style="margin-bottom:' + (ti < data.length-1 ? '16px' : '0') + '">';
+    tbl.forEach(function(row, ri) {
+      if (!row || !row.length) return;
+      var tag = ri === 0 ? 'th' : 'td';
+      html += '<tr>' + row.map(function(cell) {
+        return '<' + tag + ' style="' + (tag==='th'?'font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);':'') + '">' + (cell||'') + '</' + tag + '>';
+      }).join('') + '</tr>';
+    });
+    html += '</table>';
+  });
+  return html || '<p style="font-size:12px;color:var(--text2);font-style:italic">' + (emptyMsg||'Sin datos') + '</p>';
+}
+
+function abrirFormulaDetail(id) {
+  var f = _allFormulas.filter(function(x) { return x.id === id; })[0];
+  if (!f) return;
+  var famEl = document.getElementById('fdp-fam');
+  var nomEl = document.getElementById('fdp-nombre');
+  if (famEl) famEl.textContent = f.familia || '';
+  if (nomEl) nomEl.textContent = f.nombre;
+
+  var body = document.getElementById('fdp-body');
+  if (!body) {
+    var ov = document.getElementById('fdp-overlay'); if (ov) ov.classList.add('open');
+    var dp = document.getElementById('formula-detail-panel'); if (dp) dp.classList.add('open');
+    return;
+  }
+
+  var html = '';
+
+  // SECCIÓN 1: Fórmula (ingredientes)
+  var fJson = f.formula_json;
+  var hasFormula = fJson && fJson.length > 0;
+  html += '<div class="fdp-section">';
+  html += '<div class="fdp-section-title"><i class="fas fa-flask" style="margin-right:6px"></i>Fórmula</div>';
+  html += hasFormula ? renderJsonTable(fJson, 'Sin fórmula registrada') : '<p style="font-size:12px;color:var(--text2);font-style:italic">Sin fórmula registrada</p>';
+  html += '</div>';
+
+  // SECCIÓN 2: Análisis / Concentrado
+  var aJson = f.analisis_json;
+  var hasAnalisis = aJson && aJson.length > 0;
+  html += '<div class="fdp-section">';
+  html += '<div class="fdp-section-title"><i class="fas fa-vial" style="margin-right:6px"></i>Análisis / Concentrado</div>';
+  html += hasAnalisis ? renderJsonTable(aJson, 'Sin análisis registrado') : '<p style="font-size:12px;color:var(--text2);font-style:italic">Sin análisis registrado</p>';
+  html += '</div>';
+
+  // SECCIÓN 3: Comentarios / Notas
+  var coments = (f.comentarios || '').trim();
+  if (coments) {
+    html += '<div class="fdp-section">';
+    html += '<div class="fdp-section-title"><i class="fas fa-sticky-note" style="margin-right:6px"></i>Comentarios y notas</div>';
+    html += '<div class="notas-pre">' + coments.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+  var ov = document.getElementById('fdp-overlay'); if (ov) ov.classList.add('open');
+  var dp = document.getElementById('formula-detail-panel'); if (dp) dp.classList.add('open');
+}
+
+function cerrarFormulaDetail() {
+  var ov = document.getElementById('fdp-overlay'); if (ov) ov.classList.remove('open');
+  var dp = document.getElementById('formula-detail-panel'); if (dp) dp.classList.remove('open');
+}
+
 </script>
+
+<!-- FORMULAS DETAIL PANEL -->
+<div class="fdp-overlay" id="fdp-overlay" onclick="cerrarFormulaDetail()"></div>
+<div class="formula-detail-panel" id="formula-detail-panel">
+  <div class="fdp-header">
+    <button class="fdp-close" onclick="cerrarFormulaDetail()">&#x2715;</button>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;color:var(--accent)" id="fdp-fam"></div>
+    <div style="font-size:15px;font-weight:800;color:var(--text);padding-right:32px;line-height:1.3" id="fdp-nombre"></div>
+  </div>
+  <div class="fdp-body" id="fdp-body">
+    <p style="color:var(--text2);font-size:13px">Seleccioná una fórmula para ver los detalles.</p>
+  </div>
+</div>
 </body>
 </html>
