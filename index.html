@@ -1175,11 +1175,12 @@ function renderCOAPane(pane, id, datos, analisis, calcs) {
 
   ${!finalizado ? `
   <div class="btn-group">
-    
     <button class="btn btn-primary" onclick="finalizarCert('${id}')"><i class="fas fa-check-circle"></i> Finalizar Certificado</button>
   </div>` : `
   <div class="btn-group">
-    <button class="btn btn-info" onclick="enviarEmail('${id}')"><i class="fas fa-envelope"></i> Enviar por Email</button>
+    <button class="btn ${datos.email_enviado ? 'btn-success' : 'btn-info'}" id="btn-email-${id}" onclick="enviarEmail('${id}')">
+      <i class="fas ${datos.email_enviado ? 'fa-check' : 'fa-envelope'}"></i> ${datos.email_enviado ? 'Email enviado ✓' : 'Enviar por Email'}
+    </button>
   </div>`}
 </div>`;
 
@@ -1197,16 +1198,59 @@ function renderAnalisisRows(coaId, analisis, readOnly) {
   analisis.forEach((a, idx) => {
     const tr = document.createElement('tr');
     const badgeClass = a.estado === 'APROBADO' ? 'badge-ok' : a.estado === 'DESAPROBADO' ? 'badge-err' : 'badge-pend';
+    // Nombre cell - editable if personalizado OR in edit mode
+    const nombreCell = a.es_personalizado
+      ? `<input type="text" value="${a.nombre}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre')" style="width:100%">`
+      : `<span id="nombre-txt-${a.id}">${a.nombre}</span><input type="text" id="nombre-inp-${a.id}" value="${a.nombre}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre')" style="width:100%;display:none">`;
+    const minCell = a.es_personalizado
+      ? `<input type="text" value="${a.minimo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'minimo')" style="width:70px">`
+      : `<span id="min-txt-${a.id}">${a.minimo||''}</span><input type="text" id="min-inp-${a.id}" value="${a.minimo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'minimo')" style="width:70px;display:none">`;
+    const maxCell = a.es_personalizado
+      ? `<input type="text" value="${a.maximo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'maximo')" style="width:70px">`
+      : `<span id="max-txt-${a.id}">${a.maximo||''}</span><input type="text" id="max-inp-${a.id}" value="${a.maximo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'maximo')" style="width:70px;display:none">`;
+    const editBtn = !a.es_personalizado
+      ? `<button class="btn btn-secondary btn-sm" id="edit-btn-${a.id}" onclick="toggleEditAnalisis(${a.id})" title="Editar parámetros" style="padding:4px 8px"><i class="fas fa-pencil-alt"></i></button>`
+      : `<button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)"><i class="fas fa-trash"></i></button>`;
     tr.innerHTML = `
-      <td>${a.es_personalizado ? `<input type="text" value="${a.nombre}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre')" style="width:100%">` : a.nombre}</td>
-      <td>${a.es_personalizado ? `<input type="text" value="${a.minimo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'minimo')" style="width:70px">` : (a.minimo || '')}</td>
-      <td>${a.es_personalizado ? `<input type="text" value="${a.maximo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'maximo')" style="width:70px">` : (a.maximo || '')}</td>
+      <td>${nombreCell}</td>
+      <td>${minCell}</td>
+      <td>${maxCell}</td>
       <td><input type="text" value="${a.resultado||''}" ${readOnly?'disabled':''} data-aid="${a.id}" data-min="${a.minimo||''}" data-max="${a.maximo||''}" onchange="onResultadoChange(this,'${coaId}')" style="width:100%"></td>
       <td><input type="text" value="${a.aclaracion||''}" ${readOnly?'disabled':''} data-aid="${a.id}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'aclaracion')" style="width:100%"></td>
       <td><span class="badge ${badgeClass}" id="est-${a.id}">${a.estado || 'PENDIENTE'}</span></td>
-      <td>${(!readOnly && a.es_personalizado) ? `<button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)"><i class="fas fa-trash"></i></button>` : ''}</td>`;
+      <td>${editBtn}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+function toggleEditAnalisis(aid) {
+  const editing = document.getElementById('nombre-inp-' + aid).style.display !== 'none';
+  // Toggle between view and edit mode
+  ['nombre','min','max'].forEach(function(field) {
+    var txt = document.getElementById(field + '-txt-' + aid);
+    var inp = document.getElementById(field + '-inp-' + aid);
+    if (!txt || !inp) return;
+    if (editing) {
+      // save: update txt with new value and hide input
+      txt.textContent = inp.value;
+      txt.style.display = '';
+      inp.style.display = 'none';
+    } else {
+      txt.style.display = 'none';
+      inp.style.display = '';
+    }
+  });
+  // Update the result input data-min/data-max
+  var resInput = document.querySelector('input[data-aid="' + aid + '"][data-min]');
+  if (resInput) {
+    var minInp = document.getElementById('min-inp-' + aid);
+    var maxInp = document.getElementById('max-inp-' + aid);
+    if (minInp) resInput.dataset.min = minInp.value;
+    if (maxInp) resInput.dataset.max = maxInp.value;
+  }
+  // Update button icon
+  var btn = document.getElementById('edit-btn-' + aid);
+  if (btn) btn.innerHTML = editing ? '<i class="fas fa-pencil-alt"></i>' : '<i class="fas fa-check"></i>';
 }
 
 // ============================================================
@@ -1584,7 +1628,7 @@ function renderBuscarResults(data) {
         <td><span class="badge ${bc}">${c.estado}</span></td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" onclick="verCertFinalizado('${c.id}')"><i class="fas fa-eye"></i> Ver</button>
-          <button class="btn btn-info btn-sm" onclick="enviarEmail('${c.id}')"><i class="fas fa-envelope"></i></button>
+          <button class="btn ${c.email_enviado ? 'btn-success' : 'btn-info'} btn-sm" id="btn-email-${c.id}" onclick="enviarEmail('${c.id}')" title="${c.email_enviado ? 'Email enviado ✓' : 'Enviar por Email'}"><i class="fas ${c.email_enviado ? 'fa-check' : 'fa-envelope'}"></i></button>
         </td></tr>`;
     }).join('')}</tbody>
   </table></div>`;
@@ -2016,6 +2060,18 @@ async function enviarEmail(certId) {
     });
     hideLoader();
     toast('Email enviado a: ' + emails.join(', '), 'ok');
+    // Marcar como enviado en Supabase
+    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${encodeURIComponent(certId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ email_enviado: true })
+    });
+    // Cambiar todos los botones de email de este certificado a verde
+    document.querySelectorAll('[id="btn-email-' + certId + '"]').forEach(function(btn) {
+      btn.className = btn.className.replace('btn-info', 'btn-success');
+      var hasText = btn.textContent.trim().length > 1;
+      btn.innerHTML = '<i class="fas fa-check"></i>' + (hasText ? ' Email enviado ✓' : '');
+    });
   } catch(err) {
     hideLoader();
     toast('Error al enviar email. Verificar configuración de EmailJS.', 'err');
