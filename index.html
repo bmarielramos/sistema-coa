@@ -1310,7 +1310,7 @@ async function guardarBorrador(coaId) {
   if (!pane) return;
   const obs = document.getElementById('obs-' + coaId)?.value || '';
   const analisisInputs = pane.querySelectorAll('input[data-aid]');
-  await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${coaId}`, {
+  await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${encodeURIComponent(coaId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
     body: JSON.stringify({ observaciones: obs, fecha_ultima_modificacion: new Date().toISOString() })
@@ -1358,7 +1358,7 @@ async function updateAnalisisField(input, coaId, aid, field) {
 // AGREGAR ANÁLISIS PERSONALIZADO
 // ============================================================
 async function agregarAnalisisCustom(coaId) {
-  const _orRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=orden&certificado_id=eq.${coaId}&order=orden.desc&limit=1`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  const _orRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=orden&certificado_id=eq.${encodeURIComponent(coaId)}&order=orden.desc&limit=1`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const data = await _orRes.json();
   const nextOrden = data && data.length > 0 ? data[0].orden + 1 : 1;
   const _naRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados`, {
@@ -1435,7 +1435,7 @@ async function finalizarCert(coaId, forzar = false) {
   if (!forzar) {
     console.log('🔵 Verificando análisis...');
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=nombre,estado&certificado_id=eq.${coaId}`, { headers: hdrs });
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=nombre,estado&certificado_id=eq.${encodeURIComponent(coaId)}`, { headers: hdrs });
       const analisis = await r.json();
       console.log('🔵 Análisis obtenidos:', analisis?.length);
       const problemas = (Array.isArray(analisis) ? analisis : []).filter(a => a.estado !== 'APROBADO');
@@ -1459,7 +1459,7 @@ async function finalizarCert(coaId, forzar = false) {
     const obsEl = document.getElementById('obs-' + coaId);
     const obs = obsEl ? obsEl.value : '';
     await Promise.race([
-      fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${coaId}`, {
+      fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${encodeURIComponent(coaId)}`, {
         method: 'PATCH',
         headers: { ...hdrs, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify({ observaciones: obs, estado: estadoFinal, fecha_ultima_modificacion: new Date().toISOString() })
@@ -1496,9 +1496,9 @@ async function finalizarCert(coaId, forzar = false) {
     // 3. Recargar pane
     setTimeout(async () => {
       const [cr, ar, ccr] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${coaId}`, { headers: hdrs }),
-        fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${coaId}&order=orden.asc`, { headers: hdrs }),
-        fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${coaId}`, { headers: hdrs })
+        fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(coaId)}`, { headers: hdrs }),
+        fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(coaId)}&order=orden.asc`, { headers: hdrs }),
+        fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${encodeURIComponent(coaId)}`, { headers: hdrs })
       ]);
       const cd = await cr.json(); const ad = await ar.json(); const ccd = await ccr.json();
       const certFinal = Array.isArray(cd) ? cd[0] : cd;
@@ -1522,10 +1522,10 @@ async function iniciarReformulacion(origId) {
     '<p>Se creará un nuevo certificado basado en este, con los mismos análisis. Los análisis desaprobados se marcarán para corrección.</p>',
   async () => {
     showLoader('Creando reformulación...');
-    const _rfcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${origId}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const _rfcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(origId)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
     const _rfcData = await _rfcRes.json();
     const orig = Array.isArray(_rfcData) ? _rfcData[0] : _rfcData;
-    const _rfaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${origId}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const _rfaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(origId)}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
     const analisis = await _rfaRes.json();
     const newId = `COA-REF-${Date.now()}`;
     await fetch(`${SUPABASE_URL}/rest/v1/certificados`, {
@@ -1545,7 +1545,7 @@ async function iniciarReformulacion(origId) {
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
       body: JSON.stringify(nuevosAnalisis)
     });
-    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${origId}`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/certificados?id=eq.${encodeURIComponent(origId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
       body: JSON.stringify({ estado: 'DESAPROBADO' })
