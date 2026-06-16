@@ -1258,8 +1258,19 @@ function toggleEditAnalisis(aid) {
 // ============================================================
 function onResultadoChange(input, coaId) {
   const valor = input.value.trim().toUpperCase();
-  const min = input.dataset.min;
-  const max = input.dataset.max;
+  // Try to get min/max from data attributes first, then from sibling inputs in the same row
+  let min = input.dataset.min;
+  let max = input.dataset.max;
+  const row = input.closest('tr');
+  if (row && (!min || !max)) {
+    const minInp = row.querySelector('input[id^="min-new-"], td:nth-child(2) input');
+    const maxInp = row.querySelector('input[id^="max-new-"], td:nth-child(3) input');
+    if (minInp && !min) min = minInp.value.trim();
+    if (maxInp && !max) max = maxInp.value.trim();
+  }
+  // Also update data attributes for next time
+  if (min) input.dataset.min = min;
+  if (max) input.dataset.max = max;
   const aid = input.dataset.aid;
   const estado = calcularEstado(valor, min, max);
   const badge = document.getElementById('est-' + aid);
@@ -1372,8 +1383,8 @@ async function agregarAnalisisCustom(coaId) {
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input type="text" value="Nuevo análisis" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'nombre')" style="width:100%"></td>
-    <td><input type="text" value="" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'minimo')" style="width:70px"></td>
-    <td><input type="text" value="" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'maximo')" style="width:70px"></td>
+    <td><input type="text" value="" id="min-new-${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'minimo');var ri=document.querySelector('input[data-aid=\'${nuevo.id}\'][data-min]');if(ri)ri.dataset.min=this.value" style="width:70px"></td>
+    <td><input type="text" value="" id="max-new-${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'maximo');var ri=document.querySelector('input[data-aid=\'${nuevo.id}\'][data-min]');if(ri)ri.dataset.max=this.value" style="width:70px"></td>
     <td><input type="text" value="" data-aid="${nuevo.id}" data-min="" data-max="" onchange="onResultadoChange(this,'${coaId}')" style="width:100%"></td>
     <td><input type="text" value="" data-aid="${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'aclaracion')" style="width:100%"></td>
     <td><span class="badge badge-pend" id="est-${nuevo.id}">PENDIENTE</span></td>
@@ -1435,9 +1446,24 @@ async function finalizarCert(coaId, forzar = false) {
   if (!forzar) {
     console.log('🔵 Verificando análisis...');
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=nombre,estado&certificado_id=eq.${encodeURIComponent(coaId)}`, { headers: hdrs });
-      const analisis = await r.json();
-      console.log('🔵 Análisis obtenidos:', analisis?.length);
+      // Leer estados desde el DOM (valores actuales en pantalla, no los de Supabase que pueden estar desactualizados)
+      const tbody = document.getElementById('tbody-' + coaId);
+      const analisis = [];
+      if (tbody) {
+        tbody.querySelectorAll('tr').forEach(function(row) {
+          var resInput = row.querySelector('input[data-aid][data-min]');
+          var badgeEl = row.querySelector('.badge[id^="est-"]');
+          if (!badgeEl) return;
+          var nombreEl = row.querySelector('td:first-child');
+          var nombre = nombreEl ? nombreEl.textContent.trim() : '';
+          var resultado = resInput ? resInput.value.trim() : '';
+          var min = resInput ? resInput.dataset.min : '';
+          var max = resInput ? resInput.dataset.max : '';
+          var estado = resultado ? calcularEstado(resultado.toUpperCase(), min, max) : 'PENDIENTE';
+          analisis.push({ nombre: nombre, estado: estado });
+        });
+      }
+      console.log('🔵 Análisis obtenidos desde DOM:', analisis?.length);
       const problemas = (Array.isArray(analisis) ? analisis : []).filter(a => a.estado !== 'APROBADO');
       if (problemas.length > 0) {
         const lista = problemas.map(p => `<li><b>${p.nombre}</b>: ${p.estado || 'PENDIENTE'}</li>`).join('');
@@ -1750,6 +1776,9 @@ async function guardarParametros() {
   toast(analisis.length + ' analisis guardados para ' + producto, 'ok');
   await cargarProductosSelect();
   cargarListaProductosGestion();
+  // Also clear product search so new product appears immediately
+  if (document.getElementById('f-producto-search')) document.getElementById('f-producto-search').value = '';
+  if (document.getElementById('f-producto')) document.getElementById('f-producto').value = '';
 }
 
 // ============================================================
