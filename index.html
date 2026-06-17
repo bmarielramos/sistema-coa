@@ -1209,8 +1209,13 @@ function renderAnalisisRows(coaId, analisis, readOnly) {
       ? `<input type="text" value="${a.maximo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'maximo')" style="width:70px">`
       : `<span id="max-txt-${a.id}">${a.maximo||''}</span><input type="text" id="max-inp-${a.id}" value="${a.maximo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'maximo')" style="width:70px;display:none">`;
     const editBtn = !a.es_personalizado
-      ? `<button class="btn btn-secondary btn-sm" id="edit-btn-${a.id}" onclick="toggleEditAnalisis(${a.id})" title="Editar parámetros" style="padding:4px 8px"><i class="fas fa-pencil-alt"></i></button>`
-      : `<button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)"><i class="fas fa-trash"></i></button>`;
+      ? `<div style="display:flex;gap:4px">
+           <button class="btn btn-secondary btn-sm" id="edit-btn-${a.id}" onclick="toggleEditAnalisis(${a.id})" title="Editar parámetros" style="padding:4px 8px"><i class="fas fa-pencil-alt"></i></button>
+           ${!readOnly ? `<button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)" title="Eliminar" style="padding:4px 8px"><i class="fas fa-times"></i></button>` : ''}
+         </div>`
+      : `<div style="display:flex;gap:4px">
+           <button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)"><i class="fas fa-trash"></i></button>
+         </div>`;
     tr.innerHTML = `
       <td>${nombreCell}</td>
       <td>${minCell}</td>
