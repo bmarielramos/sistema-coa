@@ -862,14 +862,18 @@ async function doLogin() {
   const pass = document.getElementById('loginPass').value.trim();
   if (!user || !pass) { showErr('Ingrese usuario y contraseña'); return; }
 
+  // Mostrar spinner en botón
+  const loginBtn = document.querySelector('.login-btn');
+  if (loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ingresando...'; }
   const _lgRes = await fetch(`${SUPABASE_URL}/rest/v1/laboratorios?select=*&id=eq.${labId}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Accept': 'application/vnd.pgrst.object+json' } });
   const data = await _lgRes.json();
   const error = _lgRes.ok ? null : { message: 'Error ' + _lgRes.status };
-  if (error || !data) { showErr('Error al conectar con la base de datos'); return; }
+  if (error || !data) { showErr('Error al conectar con la base de datos'); if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar'; } return; }
 
   if (data.usuario !== user || data.password_hash !== pass) {
     showErr('Usuario o contraseña incorrectos');
     document.getElementById('loginPass').value = '';
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar'; }
     return;
   }
 
@@ -2063,6 +2067,9 @@ function imprimirCert() {
   doc.document.write('</body></html>');
 
   doc.document.close();
+  // Nombre del PDF: COA-PRODUCTO-LOTE
+  var pdfNombre = 'COA-' + (d.producto || '').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').trim().replace(/\s+/g, '-') + '-' + (d.lote || '').replace(/[^a-zA-Z0-9]/g, '-');
+  doc.document.title = pdfNombre;
   setTimeout(function() { doc.print(); }, 1000);
 }
 
