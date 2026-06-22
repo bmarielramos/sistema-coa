@@ -1264,6 +1264,13 @@ function toggleEditAnalisis(aid) {
   // Update button icon
   var btn = document.getElementById('edit-btn-' + aid);
   if (btn) btn.innerHTML = editing ? '<i class="fas fa-pencil-alt"></i>' : '<i class="fas fa-check"></i>';
+  // FIX Bug 1: al cerrar edicion, recalcular estado y guardar
+  if (editing && resInput && resInput.value) {
+    var ocAttr = resInput.getAttribute('onchange') || '';
+    var m = ocAttr.match(/onResultadoChange\(this,\s*'([^']*)'\)/);
+    var coaId = m ? m[1] : null;
+    if (coaId) onResultadoChange(resInput, coaId);
+  }
 }
 
 // ============================================================
@@ -1302,6 +1309,8 @@ function calcularEstado(valor, min, max) {
   const limMin = (min || '').replace(/'/g, '');
   const limMax = (max || '').replace(/'/g, '');
   const esNum = v => v !== '' && !isNaN(parseFloat(v.replace(',', '.')));
+  // FIX Bug 2: si no hay limites definidos, cualquier resultado es APROBADO
+  if (!esNum(limMin) && !esNum(limMax)) return 'APROBADO';
   if (esNum(limMin) && esNum(limMax)) {
     if (!esNum(valor)) return 'DESAPROBADO';
     const n = parseFloat(valor.replace(',', '.'));
