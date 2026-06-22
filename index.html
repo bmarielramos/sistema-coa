@@ -1384,6 +1384,15 @@ async function updateAnalisisField(input, coaId, aid, field) {
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
     body: JSON.stringify({ [field]: val })
   });
+  // FIX tiempo real: al cambiar minimo/maximo, recalcular estado y badge al instante
+  if (field === 'minimo' || field === 'maximo') {
+    var resInput = document.querySelector('input[data-aid="' + aid + '"][data-min]');
+    if (resInput) {
+      if (field === 'minimo') resInput.dataset.min = val;
+      if (field === 'maximo') resInput.dataset.max = val;
+      onResultadoChange(resInput, coaId);
+    }
+  }
   autoSave(coaId);
 }
 
