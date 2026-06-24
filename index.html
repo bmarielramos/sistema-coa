@@ -343,7 +343,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <button class="tab-btn" data-tab="buscar" onclick="switchTab('buscar',this)"><i class="fas fa-search"></i> Buscar</button>
     <button class="tab-btn" data-tab="gestion" onclick="switchTab('gestion',this);cargarListaProductosGestion()"><i class="fas fa-cogs"></i> Gestión</button>
     <button class="tab-btn" data-tab="disenio" onclick="switchTab('disenio',this)"><i class="fas fa-print"></i> Diseñar</button>
-    <button class="tab-btn" id="tab-btn-config" data-tab="config" onclick="switchTab('config',this)"><i class="fas fa-sliders-h"></i> Config</button>
+    <button class="tab-btn" id="tab-btn-config" data-tab="config" onclick="pedirAdminPass(event,this)"><i class="fas fa-lock"></i> Config</button>
   </div>
 
   <!-- TAB CONTENT -->
@@ -535,7 +535,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
         <!-- ===== CONFIG ===== -->
     <div class="tab-pane" id="tab-config">
       <div class="card">
-        <h3><i class="fas fa-sliders-h"></i> Configuración del Laboratorio</h3>
+        <h3><i class="fas fa-lock-open"></i> Configuración del Laboratorio <button class="btn btn-warning btn-sm" onclick="salirAdmin()" style="margin-left:12px;font-size:11px"><i class="fas fa-lock"></i> Salir admin</button></h3>
         <div id="config-content">
           <div class="form-row">
             <div class="fg">
@@ -601,7 +601,20 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
               </div>
             </div>
           </div>
-          <button class="btn btn-outline" onclick="cambiarPassword('emulpar')"><i class="fas fa-key"></i> Cambiar contraseña Emulpar</button>
+          <button class="btn btn-outline" onclick="cambiarPassword('emulpar')"><i class="fas fa-key"></i> Cambiar contrasena Emulpar</button>
+        </div>
+        <div id="admin-edit-section" style="display:none;margin-top:24px">
+          <hr style="border:none;border-top:2px solid #fbbf24;margin-bottom:20px">
+          <h4 style="font-size:14px;font-weight:700;color:#d97706;margin-bottom:12px">Edicion de Certificados Finalizados</h4>
+          <div class="form-row">
+            <div class="fg"><label>Producto</label><input type="text" id="admin-b-producto" placeholder="Ej: EMULFER BEHA" style="text-transform:uppercase"></div>
+            <div class="fg"><label>Lote</label><input type="text" id="admin-b-lote" placeholder="Ej: LAB050626" style="text-transform:uppercase"></div>
+          </div>
+          <div class="btn-group" style="margin-bottom:16px">
+            <button class="btn btn-warning" onclick="adminBuscarCerts()"><i class="fas fa-search"></i> Buscar</button>
+            <button class="btn btn-secondary" onclick="adminUltimos()"><i class="fas fa-history"></i> Ultimos 15</button>
+          </div>
+          <div id="admin-results"></div>
         </div>
       </div>
     </div>
@@ -774,6 +787,41 @@ class SBQuery {
 // ============================================================
 let currentLab = null;
 let openCOAs = {};
+let adminMode = false;
+const ADMIN_PASS = 'Ferar1234*';
+
+function pedirAdminPass(e, btn) {
+  if (adminMode) { switchTab('config', btn); return; }
+  var pass = prompt('Contrasena de administrador:');
+  if (pass === null) return;
+  if (pass === ADMIN_PASS) {
+    adminMode = true;
+    btn.innerHTML = '<i class="fas fa-lock-open"></i> Config';
+    btn.style.color = '#fbbf24';
+    switchTab('config', btn);
+    var sec = document.getElementById('admin-edit-section');
+    if (sec) sec.style.display = 'block';
+    toast('Modo admin activado', 'ok');
+  } else {
+    toast('Contrasena incorrecta', 'err');
+  }
+}
+
+function salirAdmin() {
+  adminMode = false;
+  var btn = document.getElementById('tab-btn-config');
+  if (btn) { btn.innerHTML = '<i class="fas fa-lock"></i> Config'; btn.style.color = ''; }
+  var sec = document.getElementById('admin-edit-section');
+  if (sec) sec.style.display = 'none';
+  Object.keys(openCOAs).forEach(function(id) {
+    var pane = document.getElementById('tab-coa-' + id);
+    if (pane) { delete openCOAs[id]; pane.remove(); }
+    var tabBtn = document.querySelector('.tab-btn[data-coa="' + id + '"]');
+    if (tabBtn) tabBtn.remove();
+  });
+  toast('Modo admin desactivado', 'info');
+  switchTab('inicio', document.querySelector('.tab-btn[data-tab="inicio"]'));
+}
 // Calculadora flotante - nueva version con input editable
 function toggleCalc() {
   var c = document.getElementById('floatCalc');
@@ -1139,7 +1187,7 @@ async function abrirCOATab(id, nombre, datos = null) {
 function renderCOAPane(pane, id, datos, analisis, calcs) {
   const motivo = datos.otro_motivo || datos.motivo || 'N/A';
   const estado = datos.estado || 'EN PROCESO';
-  const finalizado = ['APROBADO','DESAPROBADO','FINALIZADO'].includes(estado);
+  const finalizado = ['APROBADO','DESAPROBADO','FINALIZADO'].includes(estado) && !adminMode;
 
   pane.innerHTML = `
 <div class="card">
@@ -1264,13 +1312,6 @@ function toggleEditAnalisis(aid) {
   // Update button icon
   var btn = document.getElementById('edit-btn-' + aid);
   if (btn) btn.innerHTML = editing ? '<i class="fas fa-pencil-alt"></i>' : '<i class="fas fa-check"></i>';
-  // FIX Bug 1: al cerrar edicion, recalcular estado y guardar
-  if (editing && resInput && resInput.value) {
-    var ocAttr = resInput.getAttribute('onchange') || '';
-    var m = ocAttr.match(/onResultadoChange\(this,\s*'([^']*)'\)/);
-    var coaId = m ? m[1] : null;
-    if (coaId) onResultadoChange(resInput, coaId);
-  }
 }
 
 // ============================================================
@@ -1304,28 +1345,23 @@ function onResultadoChange(input, coaId) {
 
 function calcularEstado(valor, min, max) {
   if (!valor) return 'PENDIENTE';
-  const aprobadas = ['OK','LÍNEA','LINEA','LIN','APTO','CUMPLE','NO APRECIABLE','NO APR','NO AP','APROBADO','CONFORME'];
+  // Palabras que siempre aprueban
+  const aprobadas = ['OK','LÍNEA','LINEA','LIN','APTO','CUMPLE','NO APRECIABLE','NO APR','NO AP','APROBADO','CONFORME','SI','SÍ','PASA'];
   if (aprobadas.includes(valor)) return 'APROBADO';
-  const limMin = (min || '').replace(/'/g, '');
-  const limMax = (max || '').replace(/'/g, '');
-  const esNum = v => v !== '' && !isNaN(parseFloat(v.replace(',', '.')));
-  // FIX Bug 2: si no hay limites definidos, cualquier resultado es APROBADO
-  if (!esNum(limMin) && !esNum(limMax)) return 'APROBADO';
-  if (esNum(limMin) && esNum(limMax)) {
+  // Si los límites son numéricos, validar numéricamente
+  const limMin = (min || '').replace(/'/g, '').trim();
+  const limMax = (max || '').replace(/'/g, '').trim();
+  const esNum = function(v) { return v !== '' && !isNaN(parseFloat(v.replace(',', '.'))); };
+  if (esNum(limMin) || esNum(limMax)) {
     if (!esNum(valor)) return 'DESAPROBADO';
     const n = parseFloat(valor.replace(',', '.'));
-    const nMin = parseFloat(limMin.replace(',', '.'));
-    const nMax = parseFloat(limMax.replace(',', '.'));
-    return (n >= nMin && n <= nMax) ? 'APROBADO' : 'DESAPROBADO';
+    if (esNum(limMin) && esNum(limMax)) {
+      return (n >= parseFloat(limMin.replace(',','.')) && n <= parseFloat(limMax.replace(',','.'))) ? 'APROBADO' : 'DESAPROBADO';
+    }
+    if (esNum(limMin)) return n >= parseFloat(limMin.replace(',','.')) ? 'APROBADO' : 'DESAPROBADO';
+    if (esNum(limMax)) return n <= parseFloat(limMax.replace(',','.')) ? 'APROBADO' : 'DESAPROBADO';
   }
-  if (esNum(limMin) && !esNum(limMax)) {
-    if (!esNum(valor)) return 'DESAPROBADO';
-    return parseFloat(valor.replace(',', '.')) >= parseFloat(limMin.replace(',', '.')) ? 'APROBADO' : 'DESAPROBADO';
-  }
-  if (!esNum(limMin) && esNum(limMax)) {
-    if (!esNum(valor)) return 'DESAPROBADO';
-    return parseFloat(valor.replace(',', '.')) <= parseFloat(limMax.replace(',', '.')) ? 'APROBADO' : 'DESAPROBADO';
-  }
+  // Límites de texto: solo aprueban las palabras de la lista, el resto DESAPROBADO
   return 'DESAPROBADO';
 }
 
@@ -1384,15 +1420,6 @@ async function updateAnalisisField(input, coaId, aid, field) {
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
     body: JSON.stringify({ [field]: val })
   });
-  // FIX tiempo real: al cambiar minimo/maximo, recalcular estado y badge al instante
-  if (field === 'minimo' || field === 'maximo') {
-    var resInput = document.querySelector('input[data-aid="' + aid + '"][data-min]');
-    if (resInput) {
-      if (field === 'minimo') resInput.dataset.min = val;
-      if (field === 'maximo') resInput.dataset.max = val;
-      onResultadoChange(resInput, coaId);
-    }
-  }
   autoSave(coaId);
 }
 
@@ -2176,6 +2203,50 @@ async function guardarConfig() {
   document.getElementById('topLogo').src = updates.logo_url;
   document.getElementById('topTitle').textContent = updates.nombre;
   toast('Configuración guardada', 'ok');
+}
+
+async function adminBuscarCerts() {
+  var prod = (document.getElementById('admin-b-producto').value || '').trim().toUpperCase();
+  var lote = (document.getElementById('admin-b-lote').value || '').trim().toUpperCase();
+  if (!prod && !lote) { toast('Ingresa al menos un criterio', 'err'); return; }
+  showLoader('Buscando...');
+  var url = SUPABASE_URL + '/rest/v1/certificados?select=*&laboratorio_id=eq.' + currentLab.id + '&estado=neq.EN%20PROCESO&order=fecha.desc&limit=50';
+  if (prod) url += '&producto=ilike.*' + encodeURIComponent(prod) + '*';
+  if (lote) url += '&lote=ilike.*' + encodeURIComponent(lote) + '*';
+  var res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  var data = await res.json();
+  hideLoader();
+  adminRenderResults(Array.isArray(data) ? data : []);
+}
+
+async function adminUltimos() {
+  showLoader('Cargando...');
+  var res = await fetch(SUPABASE_URL + '/rest/v1/certificados?select=*&laboratorio_id=eq.' + currentLab.id + '&estado=neq.EN%20PROCESO&order=fecha.desc&limit=15', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var data = await res.json();
+  hideLoader();
+  adminRenderResults(data || []);
+}
+
+function adminRenderResults(data) {
+  var div = document.getElementById('admin-results');
+  if (!data.length) { div.innerHTML = '<p style="color:var(--text2)">Sin resultados</p>'; return; }
+  div.innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Producto</th><th>Lote</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th></th></tr></thead><tbody>'
+    + data.map(function(c) {
+      var bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
+      return '<tr><td>' + c.producto + '</td><td>' + c.lote + '</td><td>' + c.cliente + '</td>'
+        + '<td>' + new Date(c.fecha).toLocaleDateString() + '</td>'
+        + '<td><span class="badge ' + bc + '">' + c.estado + '</span></td>'
+        + '<td><button class="btn btn-warning btn-sm" onclick="adminAbrirCOA(\'' + c.id + '\',\'' + (c.producto + '-' + c.lote).replace(/\'/g,'') + '\')"><i class="fas fa-edit"></i> Editar</button></td>'
+        + '</tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+async function adminAbrirCOA(id, nombre) {
+  await abrirCOATab(id, nombre);
+  var btn = document.querySelector('.tab-btn[data-coa="' + id + '"]');
+  if (btn) btn.click();
 }
 
 async function cambiarPassword(labTarget) {
