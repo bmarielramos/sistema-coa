@@ -2238,7 +2238,7 @@ function adminRenderResults(data) {
       return '<tr><td>' + c.producto + '</td><td>' + c.lote + '</td><td>' + c.cliente + '</td>'
         + '<td>' + new Date(c.fecha).toLocaleDateString() + '</td>'
         + '<td><span class="badge ' + bc + '">' + c.estado + '</span></td>'
-        + '<td><button class="btn btn-warning btn-sm" onclick="adminAbrirCOA(\'' + c.id + '\',\'' + (c.producto + '-' + c.lote).replace(/\'/g,'') + '\')"><i class="fas fa-edit"></i> Editar</button></td>'
+        + '<td><div style=\"display:flex;gap:6px\"><button class=\"btn btn-warning btn-sm\" onclick=\"adminAbrirCOA(\'' + c.id + '\',\'' + (c.producto + '-' + c.lote).replace(/\'/g,'') + '\')"><i class=\"fas fa-edit\"></i> Editar</button><button class=\"btn btn-danger btn-sm\" onclick=\"adminEliminarCOA(\'' + c.id + '\',\'' + c.producto.replace(/\'/g,'') + '\')"><i class=\"fas fa-trash\"></i></button></div></td>'
         + '</tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -2247,6 +2247,28 @@ async function adminAbrirCOA(id, nombre) {
   await abrirCOATab(id, nombre);
   var btn = document.querySelector('.tab-btn[data-coa="' + id + '"]');
   if (btn) btn.click();
+}
+
+function adminEliminarCOA(id, producto) {
+  showModal(
+    'Eliminar Certificado',
+    '<p>¿Estás segura de que querés eliminar el certificado de <b>' + producto + '</b>?</p><p style="margin-top:8px;color:#dc2626;font-size:13px">Esta acción no se puede deshacer.</p>',
+    async function() {
+      showLoader('Eliminando...');
+      await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?certificado_id=eq.' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      await fetch(SUPABASE_URL + '/rest/v1/certificados?id=eq.' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      hideLoader();
+      toast('Certificado eliminado', 'ok');
+      adminUltimos();
+    },
+    'Sí, eliminar'
+  );
 }
 
 async function cambiarPassword(labTarget) {
