@@ -1666,7 +1666,10 @@ async function loadProceso() {
       <td><code style="font-size:11px">${c.id}</code></td><td>${c.producto}</td><td>${c.lote}</td>
       <td>${c.cantidad} Kg</td><td>${c.cliente}</td><td>${c.operador}</td>
       <td>${new Date(c.fecha).toLocaleDateString()}</td>
-      <td><button class="btn btn-primary btn-sm" onclick="abrirCOATab('${c.id}','${c.producto} - ${c.lote}')"><i class="fas fa-edit"></i> Continuar</button></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="abrirCOATab('${c.id}','${c.producto} - ${c.lote}')"><i class="fas fa-edit"></i> Continuar</button>
+        ${adminMode ? '<button class="btn btn-danger btn-sm" onclick="adminEliminarCOA(''+c.id+'',''+c.producto+'')"><i class="fas fa-trash"></i></button>' : ''}
+      </td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -2210,7 +2213,7 @@ async function adminBuscarCerts() {
   var lote = (document.getElementById('admin-b-lote').value || '').trim().toUpperCase();
   if (!prod && !lote) { toast('Ingresa al menos un criterio', 'err'); return; }
   showLoader('Buscando...');
-  var url = SUPABASE_URL + '/rest/v1/certificados?select=*&laboratorio_id=eq.' + currentLab.id + '&estado=neq.EN%20PROCESO&order=fecha.desc&limit=50';
+  var url = SUPABASE_URL + '/rest/v1/certificados?select=*&laboratorio_id=eq.' + currentLab.id + '&order=fecha.desc&limit=50';
   if (prod) url += '&producto=ilike.*' + encodeURIComponent(prod) + '*';
   if (lote) url += '&lote=ilike.*' + encodeURIComponent(lote) + '*';
   var res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
@@ -2221,7 +2224,7 @@ async function adminBuscarCerts() {
 
 async function adminUltimos() {
   showLoader('Cargando...');
-  var res = await fetch(SUPABASE_URL + '/rest/v1/certificados?select=*&laboratorio_id=eq.' + currentLab.id + '&estado=neq.EN%20PROCESO&order=fecha.desc&limit=15', {
+  var res = await fetch(SUPABASE_URL + '/rest/v1/certificados?select=*&laboratorio_id=eq.' + currentLab.id + '&order=fecha.desc&limit=15', {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
   });
   var data = await res.json();
