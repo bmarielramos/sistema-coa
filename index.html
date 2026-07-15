@@ -1369,18 +1369,20 @@ function calcularEstado(valor, min, max) {
   // Palabras que siempre aprueban
   const aprobadas = ['OK','LÍNEA','LINEA','LIN','APTO','CUMPLE','NO APRECIABLE','NO APR','NO AP','APROBADO','CONFORME','SI','SÍ','PASA'];
   if (aprobadas.includes(valor)) return 'APROBADO';
-  // Si los límites son numéricos, validar numéricamente
+  // Normalizar N/A, NA, - como "sin límite"
+  const sinLimite = function(v) { var u = (v||'').trim().toUpperCase(); return u === '' || u === 'N/A' || u === 'NA' || u === '-' || u === 'S/D'; };
   const limMin = (min || '').replace(/'/g, '').trim();
   const limMax = (max || '').replace(/'/g, '').trim();
   const esNum = function(v) { return v !== '' && !isNaN(parseFloat(v.replace(',', '.'))); };
+  // Si al menos un límite es numérico (y el otro es N/A o vacío)
   if (esNum(limMin) || esNum(limMax)) {
     if (!esNum(valor)) return 'DESAPROBADO';
     const n = parseFloat(valor.replace(',', '.'));
     if (esNum(limMin) && esNum(limMax)) {
       return (n >= parseFloat(limMin.replace(',','.')) && n <= parseFloat(limMax.replace(',','.'))) ? 'APROBADO' : 'DESAPROBADO';
     }
-    if (esNum(limMin)) return n >= parseFloat(limMin.replace(',','.')) ? 'APROBADO' : 'DESAPROBADO';
-    if (esNum(limMax)) return n <= parseFloat(limMax.replace(',','.')) ? 'APROBADO' : 'DESAPROBADO';
+    if (esNum(limMin) && sinLimite(limMax)) return n >= parseFloat(limMin.replace(',','.')) ? 'APROBADO' : 'DESAPROBADO';
+    if (sinLimite(limMin) && esNum(limMax)) return n <= parseFloat(limMax.replace(',','.')) ? 'APROBADO' : 'DESAPROBADO';
   }
   // Límites de texto: solo aprueban las palabras de la lista, el resto DESAPROBADO
   return 'DESAPROBADO';
@@ -1463,8 +1465,8 @@ async function agregarAnalisisCustom(coaId) {
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input type="text" value="Nuevo análisis" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'nombre')" style="width:100%"></td>
-    <td><input type="text" value="" id="min-new-${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'minimo');var ri=document.querySelector('input[data-aid=\'${nuevo.id}\'][data-min]');if(ri)ri.dataset.min=this.value" style="width:70px"></td>
-    <td><input type="text" value="" id="max-new-${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'maximo');var ri=document.querySelector('input[data-aid=\'${nuevo.id}\'][data-min]');if(ri)ri.dataset.max=this.value" style="width:70px"></td>
+    <td><input type="text" value="" id="min-new-${nuevo.id}" oninput="var ri=document.querySelector('input[data-aid=\'${nuevo.id}\'][data-min]');if(ri)ri.dataset.min=this.value" onblur="updateAnalisisField(this,'${coaId}',${nuevo.id},'minimo')" style="width:70px"></td>
+    <td><input type="text" value="" id="max-new-${nuevo.id}" oninput="var ri=document.querySelector('input[data-aid=\'${nuevo.id}\'][data-min]');if(ri)ri.dataset.max=this.value" onblur="updateAnalisisField(this,'${coaId}',${nuevo.id},'maximo')" style="width:70px"></td>
     <td><input type="text" value="" data-aid="${nuevo.id}" data-min="" data-max="" onchange="onResultadoChange(this,'${coaId}')" style="width:100%"></td>
     <td><input type="text" value="" data-aid="${nuevo.id}" onchange="updateAnalisisField(this,'${coaId}',${nuevo.id},'aclaracion')" style="width:100%"></td>
     <td><span class="badge badge-pend" id="est-${nuevo.id}">PENDIENTE</span></td>
@@ -1683,7 +1685,7 @@ async function loadProceso() {
   const data = await _lpRes.json();
   if (!data || data.length === 0) { div.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No hay certificados en proceso</p>'; return; }
   div.innerHTML = `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>ID</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Cliente</th><th>Operador</th><th>Fecha</th><th></th></tr></thead>
+    <thead><tr><th>ID</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Cliente / Proveedor</th><th>Operador</th><th>Fecha</th><th></th></tr></thead>
     <tbody>${data.map(c => `<tr>
       <td><code style="font-size:11px">${c.id}</code></td><td>${c.producto}</td><td>${c.lote}</td>
       <td>${c.cantidad} Kg</td><td>${c.cliente}</td><td>${c.operador}</td>
@@ -1723,7 +1725,7 @@ function renderBuscarResults(data) {
   const div = document.getElementById('buscarResults');
   if (!data.length) { div.innerHTML = '<p style="color:var(--text2)">No se encontraron resultados</p>'; return; }
   div.innerHTML = `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Pasado</th><th>ID</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+    <thead><tr><th>Pasado</th><th>ID</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Cliente / Proveedor</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
     <tbody>${data.map(c => {
       const bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
       return `<tr>
@@ -2258,7 +2260,7 @@ async function adminUltimos() {
 function adminRenderResults(data) {
   var div = document.getElementById('admin-results');
   if (!data.length) { div.innerHTML = '<p style="color:var(--text2)">Sin resultados</p>'; return; }
-  div.innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Lab</th><th>Producto</th><th>Lote</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th></th></tr></thead><tbody>'
+  div.innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>Lab</th><th>Producto</th><th>Lote</th><th>Cliente / Proveedor</th><th>Fecha</th><th>Estado</th><th></th></tr></thead><tbody>'
     + data.map(function(c) {
       var bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
       return '<tr><td><span class="badge" style="background:' + (c.laboratorio_id==='emulpar'?'#0891b2':'#7c3aed') + ';color:#fff">' + (c.laboratorio_id==='emulpar'?'EMU':'FER') + '</span></td><td>' + c.producto + '</td><td>' + c.lote + '</td><td>' + c.cliente + '</td>'
@@ -2528,7 +2530,7 @@ async function buscarParaDisenio() {
   hideLoader();
   const div = document.getElementById('d-results');
   if (!data || !data.length) { div.innerHTML = '<p style="color:var(--text2)">Sin resultados</p>'; return; }
-  div.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Producto</th><th>Lote</th><th>Estado</th><th>Cliente</th><th>Fecha</th><th></th></tr></thead><tbody>
+  div.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Producto</th><th>Lote</th><th>Estado</th><th>Cliente / Proveedor</th><th>Fecha</th><th></th></tr></thead><tbody>
     ${data.map(c => {
       const bc = c.estado==='APROBADO'?'badge-ok':c.estado==='DESAPROBADO'?'badge-err':'badge-proc';
       return `<tr><td>${c.producto}</td><td>${c.lote}</td><td><span class="badge ${bc}">${c.estado}</span></td><td>${c.cliente}</td><td>${new Date(c.fecha).toLocaleDateString()}</td>
