@@ -876,23 +876,9 @@ function calcEqual() {
   var inp = document.getElementById('calcDisplay');
   if (!inp) return;
   var expr = inp.value.replace(/,/g,'.').replace(/x/gi,'*').replace(/÷/g,'/').replace(/×/g,'*');
-  // Convert % operator: number% → number/100, and number op number% → number op (number/100)*prevNumber
-  // Simple approach: replace X% with (X/100) when standalone, or num op num% → num op num/100*num
-  expr = expr.replace(/(\d+\.?\d*)\s*%/g, function(match, num, offset, str) {
-    // Check what's before: if preceded by + - * / then it's X% of previous operand
-    var before = str.substring(0, offset).trim();
-    var lastOp = before.match(/[\+\-\*\/]([^+\-\*\/]*)$/);
-    if (lastOp) {
-      // Find the left operand
-      var left = before.substring(0, before.lastIndexOf(lastOp[0])).trim();
-      // If left is a number, treat as percentage of left
-      if (left && !isNaN(parseFloat(left))) {
-        return '(' + num + '/100*' + parseFloat(left) + ')';
-      }
-    }
-    // Standalone: just divide by 100
-    return '(' + num + '/100)';
-  });
+  // Convert % operator: always treat number% as number/100
+  // So 100*10% = 100*(10/100) = 10
+  expr = expr.replace(/(\d+\.?\d*)%/g, '($1/100)');
   try {
     var result = new Function('return (' + expr + ')')();
     if (typeof result === 'number' && isFinite(result)) {
