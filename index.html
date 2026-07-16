@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema COA</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/classic/ckeditor.js"></script>
 
 <!-- ============================================================
   REEMPLAZAR ESTAS DOS LÍNEAS CON TUS DATOS DE SUPABASE:
@@ -297,7 +296,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
   </div>
   <div style="text-align:center;color:rgba(255,255,255,.6);font-size:13px;margin-bottom:12px">Seleccione su laboratorio</div>
   <select id="labSelector" style="padding:12px 20px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:15px;font-weight:600;outline:none;cursor:pointer;margin-bottom:8px">
-    <option value="ferarquimica" style="background:#1a1528">Ferarquimica</option>
+    <option value="ferarquimica" style="background:#1a1528">Ferar Química SRL</option>
     <option value="emulpar" style="background:#1a1528">Emulpar</option>
   </select>
   <div class="login-box">
@@ -493,19 +492,18 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
             <div style="font-weight:700;font-size:15px" id="d-editor-title">Editor</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <select id="d-tipo" class="fg" onchange="var mf=document.getElementById('motivo-rechazo-field');if(mf)mf.style.display=this.value==='rechazo'?'block':'none'" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
+              <select id="d-tipo" class="fg" onchange="var mf=document.getElementById('motivo-rechazo-field');if(mf)mf.style.display=this.value==='rechazo'?'block':'none';actualizarPreview()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
                 <option value="analisis">Certificado de Análisis</option>
                 <option value="rechazo">Informe de Rechazo</option>
               </select>
               <div class="config-checks">
-                <label><input type="checkbox" id="d-cliente" checked> Cliente</label>
-                <label><input type="checkbox" id="d-obs"> Observaciones</label>
-
-                <label><input type="checkbox" id="d-aclar" checked> Aclaraciones</label>
+                <label><input type="checkbox" id="d-cliente" checked onchange="actualizarPreview()"> Cliente</label>
+                <label><input type="checkbox" id="d-obs" onchange="actualizarPreview()"> Observaciones</label>
+                <label><input type="checkbox" id="d-aclar" checked onchange="actualizarPreview()"> Aclaraciones</label>
               </div>
             </div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-secondary btn-sm" onclick="recargarEditor()"><i class="fas fa-sync"></i> Recargar</button>
+
               <button class="btn btn-outline btn-sm" onclick="toggleCOASelector()" id="btn-coa-sel" style="display:none"><i class="fas fa-filter"></i> Filtrar COA</button>
               <button class="btn btn-primary btn-sm" onclick="imprimirCert()"><i class="fas fa-print"></i> Imprimir</button>
               <button class="btn btn-secondary btn-sm" onclick="cerrarEditor()"><i class="fas fa-arrow-left"></i> Volver</button>
@@ -519,8 +517,11 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
               <span style="font-size:12px;color:var(--text2)">Desmarcados NO aparecen en la impresion</span>
             </div>
           </div>
-          <div class="ck-editor-wrap">
-            <div id="ck-editor-target"></div>
+          <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#f9f9f9">
+            <div style="background:var(--bg3);padding:8px 14px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+              <i class="fas fa-eye"></i> <span>Previsualización — lo que ves es lo que se imprime</span>
+            </div>
+            <div id="coa-preview" style="width:100%;min-height:500px;padding:20px;overflow-y:auto"></div>
           </div>
           <div id="motivo-rechazo-field" style="display:none;margin-top:16px">
             <label style="font-weight:600;display:block;margin-bottom:6px;font-size:14px">Motivo del rechazo</label>
@@ -890,7 +891,6 @@ function calcKeydown(e) {
   if (e.key === 'Enter') { e.preventDefault(); calcEqual(); }
   if (e.key === 'Escape') { toggleCalc(); }
 }
-let ckEditorInst = null;
 let currentDesignData = null;
 let modalCb = null;
 
@@ -2067,9 +2067,16 @@ function imprimirCert() {
   for (var i = 0; i < analisis.length; i++) {
     var a = analisis[i];
     var spec = '';
-    if (a.minimo && a.maximo && a.minimo !== 'N/A' && a.maximo !== 'N/A') spec = a.minimo + ' - ' + a.maximo;
-    else if (a.minimo && a.minimo !== 'N/A') spec = a.minimo;
-    else if (a.maximo && a.maximo !== 'N/A') spec = 'Max. ' + a.maximo;
+    var sinLim = function(v) { var u=(v||'').trim().toUpperCase(); return !v||u==='N/A'||u==='-'||u==='NA'; };
+    var esN = function(v) { return v && !isNaN(parseFloat((v||'').replace(',','.'))); };
+    var minCero = function(v) { return esN(v) && parseFloat((v||'').replace(',','.')) === 0; };
+    if (!sinLim(a.minimo) && !sinLim(a.maximo)) {
+      // Si mínimo es 0, solo mostrar Máx.
+      if (minCero(a.minimo)) spec = esN(a.maximo) ? 'Máx. ' + a.maximo : a.maximo;
+      else spec = a.minimo + ' - ' + a.maximo;
+    }
+    else if (!sinLim(a.minimo) && sinLim(a.maximo)) spec = esN(a.minimo) ? 'Mín. ' + a.minimo : a.minimo;
+    else if (sinLim(a.minimo) && !sinLim(a.maximo)) spec = esN(a.maximo) ? 'Máx. ' + a.maximo : a.maximo;
     var bg = 'transparent';
     var aclarCol  = mostrarAclar     ? '<td style="padding:7px 10px;font-size:9pt;color:#555;font-style:italic">' + (a.aclaracion || '') + '</td>' : '';
     var estadoCol = tipo === 'rechazo' ? '<td style="padding:7px 10px;text-align:center;font-weight:bold">' + (a.estado || '') + '</td>' : '';
@@ -2132,8 +2139,8 @@ function imprimirCert() {
   doc.document.write('</div>');
   doc.document.write('<table class="it"><tbody>' + infoRows + '</tbody></table>');
   doc.document.write('<table class="at"><thead><tr>');
-  doc.document.write('<th style="text-align:left;padding:9px 10px;">Analisis</th>');
-  doc.document.write('<th style="padding:9px 10px;">Parametros</th>');
+  doc.document.write('<th style="text-align:left;padding:9px 10px;">Análisis</th>');
+  doc.document.write('<th style="padding:9px 10px;">Parámetros</th>');
   doc.document.write('<th style="padding:9px 10px;">Resultados</th>');
   doc.document.write(aclarTh + estadoTh);
   doc.document.write('</tr></thead><tbody>' + filasAnalisis + '</tbody></table>');
@@ -2565,8 +2572,15 @@ async function generarHTMLEditor() {
       ${mostrarAclar?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Aclaración</th>':''}
       ${tipo==='rechazo'?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Estado</th>':''}
     </tr></thead>
-    <tbody>${d.analisis.map((a,i) => {
-      const spec = a.minimo && a.maximo ? `${a.minimo} - ${a.maximo}` : (a.minimo||a.maximo||'N/A');
+    <tbody>${d.analisis.filter(a => a.incluir_en_coa !== false).map((a,i) => {
+      const sinLim2 = v => !v || v.trim().toUpperCase() === 'N/A' || v.trim() === '-';
+      const esN2 = v => v && !isNaN(parseFloat(v.replace(',','.')));
+      const minCero2 = v => esN2(v) && parseFloat(v.replace(',','.')) === 0;
+      let spec = 'N/A';
+      if (!sinLim2(a.minimo) && !sinLim2(a.maximo)) {
+        spec = minCero2(a.minimo) ? (esN2(a.maximo) ? 'Máx. '+a.maximo : a.maximo) : a.minimo+' - '+a.maximo;
+      } else if (!sinLim2(a.minimo)) { spec = esN2(a.minimo) ? 'Mín. '+a.minimo : a.minimo; }
+      else if (!sinLim2(a.maximo)) { spec = esN2(a.maximo) ? 'Máx. '+a.maximo : a.maximo; }
       const bg = i%2===0?'background:transparent':'background:#f9f9f9';
       return `<tr style="${bg}">
         <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre}</td>
@@ -2579,26 +2593,34 @@ async function generarHTMLEditor() {
   </table>
   ${mostrarObs && d.observaciones ? `<p><strong>Observaciones:</strong> ${d.observaciones}</p>` : ''}`;
 
-  const target = document.getElementById('ck-editor-target');
-  if (ckEditorInst) { await ckEditorInst.destroy(); ckEditorInst = null; }
-  target.innerHTML = '';
-  if (typeof ClassicEditor !== 'undefined') {
-    ClassicEditor.create(target, {
-      toolbar: ['bold','italic','underline','|','fontColor','|','bulletedList','numberedList','|','link','insertTable','|','alignment'],
-      language: 'es'
-    }).then(editor => { ckEditorInst = editor; editor.setData(html); }).catch(err => {
-      target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
-    });
-  } else {
-    target.innerHTML = `<textarea style="width:100%;height:400px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">${html}</textarea>`;
+  // Update live preview
+  var preview = document.getElementById('coa-preview');
+  if (preview) {
+    preview.style.background = '#ffffff';
+    preview.style.color = '#1a1a1a';
+    preview.style.padding = '24px';
+    preview.style.fontFamily = 'Arial, sans-serif';
+    preview.innerHTML = '<style>'
+      + '#coa-preview, #coa-preview *{color:#1a1a1a!important;background:transparent!important}'
+      + '#coa-preview table{width:100%;border-collapse:collapse;margin-bottom:14px}'
+      + '#coa-preview th{padding:7px 10px;font-weight:bold;background:#f0ebff!important;text-align:center;border-bottom:2px solid #9f7aea;color:#1a1a1a!important}'
+      + '#coa-preview th:first-child{text-align:left}'
+      + '#coa-preview td{padding:6px 10px;border-bottom:1px solid #e2e8f0}'
+      + '#coa-preview p{margin-bottom:6px;font-size:13px;line-height:1.5}'
+      + '#coa-preview strong{font-weight:700}'
+      + '#coa-preview tr:nth-child(even) td{background:#f9f9f9!important}'
+      + '</style>' + html;
   }
 }
 function cerrarEditor() {
   document.getElementById('d-editor-section').style.display = 'none';
   document.getElementById('d-results').style.display = 'block';
-  if (ckEditorInst) { ckEditorInst.destroy(); ckEditorInst = null; }
+  // Clear preview
+  var preview = document.getElementById('coa-preview');
+  if (preview) preview.innerHTML = '';
 }
 function recargarEditor() { if (currentDesignData) generarHTMLEditor(); }
+function actualizarPreview() { if (currentDesignData) generarHTMLEditor(); }
 
 async function guardarCalcs(coaId) {
   var container = document.getElementById('calcs-' + coaId);
