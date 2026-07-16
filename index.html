@@ -876,6 +876,23 @@ function calcEqual() {
   var inp = document.getElementById('calcDisplay');
   if (!inp) return;
   var expr = inp.value.replace(/,/g,'.').replace(/x/gi,'*').replace(/÷/g,'/').replace(/×/g,'*');
+  // Convert % operator: number% → number/100, and number op number% → number op (number/100)*prevNumber
+  // Simple approach: replace X% with (X/100) when standalone, or num op num% → num op num/100*num
+  expr = expr.replace(/(\d+\.?\d*)\s*%/g, function(match, num, offset, str) {
+    // Check what's before: if preceded by + - * / then it's X% of previous operand
+    var before = str.substring(0, offset).trim();
+    var lastOp = before.match(/[\+\-\*\/]([^+\-\*\/]*)$/);
+    if (lastOp) {
+      // Find the left operand
+      var left = before.substring(0, before.lastIndexOf(lastOp[0])).trim();
+      // If left is a number, treat as percentage of left
+      if (left && !isNaN(parseFloat(left))) {
+        return '(' + num + '/100*' + parseFloat(left) + ')';
+      }
+    }
+    // Standalone: just divide by 100
+    return '(' + num + '/100)';
+  });
   try {
     var result = new Function('return (' + expr + ')')();
     if (typeof result === 'number' && isFinite(result)) {
@@ -2456,12 +2473,29 @@ async function toggleCOASelector() {
       var enCoa = a.incluir_en_coa !== false;
       var label = document.createElement('label');
       label.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;padding:3px 0';
-      label.innerHTML = '<input type="checkbox" class="coa-imp-check" data-aid="' + a.id + '"' + (enCoa ? ' checked' : '') + '> ' + (a.nombre || '');
+      var cb2 = document.createElement('input');
+      cb2.type = 'checkbox';
+      cb2.className = 'coa-imp-check';
+      cb2.dataset.aid = a.id;
+      cb2.checked = enCoa;
+      cb2.addEventListener('change', function() {
+        var aid2 = parseInt(this.dataset.aid);
+        if (currentDesignData && currentDesignData.analisis) {
+          var an2 = currentDesignData.analisis.find(function(x){ return x.id === aid2; });
+          if (an2) an2.incluir_en_coa = this.checked;
+        }
+        actualizarPreview();
+      });
+      var span2 = document.createElement('span');
+      span2.textContent = a.nombre || '';
+      label.appendChild(cb2);
+      label.appendChild(span2);
       list.appendChild(label);
     });
   } else {
     panel.style.display = 'none';
     if (btn) btn.innerHTML = '<i class="fas fa-filter"></i> Filtrar COA';
+    actualizarPreview();
   }
 }
 
@@ -2487,8 +2521,17 @@ async function guardarSeleccionCOA() {
     }));
   });
   await Promise.all(ops);
+  // Update local data in memory
+  checks.forEach(function(cb) {
+    var aid = parseInt(cb.dataset.aid);
+    if (currentDesignData && currentDesignData.analisis) {
+      var an = currentDesignData.analisis.find(function(x){ return x.id === aid; });
+      if (an) an.incluir_en_coa = cb.checked;
+    }
+  });
   hideLoader();
   toast('Seleccion guardada', 'ok');
+  actualizarPreview();
 }
 
 
