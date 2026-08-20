@@ -1897,6 +1897,7 @@ function renderCalcBlock(coaId, calc, readOnly) {
         <div class="calc-field"><label>Gramos muestra</label><input type="text" class="cf-gr" value="${campos.gr||''}" ${readOnly?'disabled':''}></div>
         <div class="calc-field"><label>Conc. Hyamine</label><input type="text" class="cf-ch" value="${campos.ch||''}" ${readOnly?'disabled':''}></div>
         <div class="calc-field"><label>Vol. Hyamine (ml)</label><input type="text" class="cf-vh" value="${campos.vh||''}" ${readOnly?'disabled':''}></div>
+        <div class="calc-field"><label>Volumen solución inicial</label><select class="cf-vol" ${readOnly?'disabled':''} style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;width:100%"><option value="100" ${(campos.vol||'100')==='100'?'selected':''}>100 ml</option><option value="250" ${campos.vol==='250'?'selected':''}>250 ml</option></select></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="calc-result" id="cr-${calc.id}">${calc.resultado||'—'}</div>
@@ -2744,8 +2745,11 @@ function calcMA(btn, coaId, calcId) {
   const gr = pn(block.querySelector('.cf-gr')?.value);
   const ch = pn(block.querySelector('.cf-ch')?.value);
   const vh = pn(block.querySelector('.cf-vh')?.value);
+  const volEl = block.querySelector('.cf-vol');
+  const vol = volEl ? parseFloat(volEl.value) : 100;
+  const factor = vol / 100; // 100ml = 1, 250ml = 2.5
   if (!pm||!gr||!ch||!vh) { toast('Complete todos los campos', 'err'); return; }
-  const res = (ch * vh * pm) / gr;
+  const res = (ch * vh * pm * factor) / gr;
   document.getElementById('cr-' + calcId).textContent = res.toFixed(4);
 }
 
