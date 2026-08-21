@@ -297,7 +297,7 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
   <div style="text-align:center;color:rgba(255,255,255,.6);font-size:13px;margin-bottom:12px">Seleccione su laboratorio</div>
   <select id="labSelector" style="padding:12px 20px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:15px;font-weight:600;outline:none;cursor:pointer;margin-bottom:8px">
     <option value="ferarquimica" style="background:#1a1528">Ferar Química SRL</option>
-    <option value="emulpar" style="background:#1a1528">Emulpar</option>
+    <option value="emulpar" style="background:#1a1528">Emulpar SA</option>
   </select>
   <div class="login-box">
     <div class="login-title" id="loginTitle">Iniciar Sesión</div>
@@ -1862,7 +1862,7 @@ async function guardarParametros() {
     toast('Error al guardar. Reintenta en unos segundos.', 'err');
     return;
   }
-  toast(analisis.length + ' analisis guardados para ' + producto, 'ok');
+  toast(analisis.length + ' análisis guardados para ' + producto, 'ok');
   await cargarProductosSelect();
   cargarListaProductosGestion();
   // Also clear product search so new product appears immediately
@@ -2042,14 +2042,17 @@ function imprimirCert() {
     : 'https://i.postimg.cc/50K58Rhj/abd19f41-6bdb-448e-be4e-0f497c394472.png';
   var watermarkUrl = 'https://i.postimg.cc/wxPSw3dP/watermark-transparent.png';
   var labNombre = currentLab ? currentLab.nombre : '';
+  // Fix display names
+  if (labNombre === 'Ferarquimica' || labNombre === 'Ferarquímica') labNombre = 'Ferar Química SRL';
+  if (labNombre === 'Emulpar' || labNombre === 'emulpar') labNombre = 'Emulpar SA';
   var labDir    = currentLab ? (currentLab.direccion || '') : '';
   var labTel    = currentLab ? (currentLab.telefono  || '') : '';
   var labEmail  = esFerarquimica ? 'ferar@ferarquimica.com' : 'info@emulpar.com.py';
-  var titulo = tipo === 'analisis' ? 'CERTIFICADO DE ANALISIS' : 'INFORME DE RECHAZO';
+  var titulo = tipo === 'analisis' ? 'CERTIFICADO DE ANÁLISIS' : 'INFORME DE RECHAZO';
     var motivoRechazo = document.getElementById('d-motivo-rechazo') ? document.getElementById('d-motivo-rechazo').value : '';
   var nota = tipo === 'rechazo'
     ? 'Motivo del rechazo: ' + (motivoRechazo || '')
-    : 'Los datos consignados en este certificado solamente reflejan los resultados obtenidos del analisis de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepcion. ' + labNombre + ' no se responsabiliza por el uso inadecuado que se haga del producto o de la informacion suministrada.';
+    : 'Los datos consignados en este certificado solamente reflejan los resultados obtenidos del análisis de una muestra representativa, no eximiendo al cliente de realizar su propio control de recepción. ' + labNombre + ' no se responsabiliza por el uso inadecuado que se haga del producto o de la información suministrada.';
 
   var fecha = new Date(d.fecha);
   var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -2091,7 +2094,7 @@ function imprimirCert() {
       + aclarCol + estadoCol + '</tr>';
   }
 
-  var aclarTh  = mostrarAclar     ? '<th style="padding:9px 10px;text-align:center">Aclaracion</th>' : '';
+  var aclarTh  = mostrarAclar     ? '<th style="padding:9px 10px;text-align:center">Aclaración</th>' : '';
   var estadoTh = tipo === 'rechazo' ? '<th style="padding:9px 10px;text-align:center">Estado</th>'    : '';
   var clienteRow = (mostrarCliente && d.cliente && tipo === 'analisis')
     ? '<tr><td style="padding:5px 0;font-weight:bold;width:6cm">CLIENTE:</td><td style="padding:5px 0">' + d.cliente + '</td></tr>' : '';
@@ -2340,7 +2343,7 @@ async function cambiarPassword(labTarget) {
   document.getElementById(confirmId).value = '';
   document.getElementById(newPassId).value = '';
   if (labTarget === 'ferarquimica') currentLab.password_hash = newPass;
-  toast('Contraseña de ' + (labTarget === 'emulpar' ? 'Emulpar' : 'Ferarquímica') + ' actualizada ✓', 'ok');
+  toast('Contraseña de ' + (labTarget === 'emulpar' ? 'Emulpar SA' : 'Ferar Química SRL') + ' actualizada ✓', 'ok');
 }
 
 
