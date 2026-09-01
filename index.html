@@ -1868,6 +1868,18 @@ async function guardarParametros() {
   // Also clear product search so new product appears immediately
   if (document.getElementById('f-producto-search')) document.getElementById('f-producto-search').value = '';
   if (document.getElementById('f-producto')) document.getElementById('f-producto').value = '';
+  // Reload analisis panel with fresh IDs from Supabase to prevent duplicates on next save
+  var res2 = await fetch(SUPABASE_URL + '/rest/v1/parametros?select=*&laboratorio_id=eq.' + currentLab.id + '&producto=eq.' + encodeURIComponent(producto) + '&order=id.asc', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var freshParams = await res2.json();
+  if (Array.isArray(freshParams)) {
+    var container = document.getElementById('analisis-container');
+    if (container) {
+      container.innerHTML = '';
+      freshParams.forEach(function(p) { agregarBloque(p.analisis, p.minimo, p.maximo, p.incluir_en_coa, p.id); });
+    }
+  }
 }
 
 // ============================================================
