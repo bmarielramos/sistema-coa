@@ -1870,23 +1870,25 @@ async function guardarParametros() {
       body: JSON.stringify(toInsert)
     }));
   }
-  // Delete removed params
+  var resultados = await Promise.allSettled(ops);
+  // Now DELETE removed params
   var container2 = document.getElementById('analisis-container');
   var deletedIds = container2 && container2.dataset.deletedIds ? container2.dataset.deletedIds.split(',').filter(Boolean) : [];
-  for (var di = 0; di < deletedIds.length; di++) {
-    ops.push(fetchConReintento(SUPABASE_URL + '/rest/v1/parametros?id=eq.' + deletedIds[di], {
-      method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    }));
+  if (deletedIds.length) {
+    var delOps = deletedIds.map(function(did) {
+      return fetchConReintento(SUPABASE_URL + '/rest/v1/parametros?id=eq.' + did, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+    });
+    await Promise.allSettled(delOps);
+    container2.dataset.deletedIds = '';
   }
-  var resultados = await Promise.allSettled(ops);
   hideLoader();
   if (resultados.some(function(r){ return r.status === 'rejected'; })) {
     toast('Error al guardar. Reintenta en unos segundos.', 'err');
     return;
   }
-  // Clear deleted IDs after successful save
-  if (container2) container2.dataset.deletedIds = '';
   toast(analisis.length + ' análisis guardados para ' + producto, 'ok');
   await cargarProductosSelect();
   cargarListaProductosGestion();
