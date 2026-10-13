@@ -1235,7 +1235,10 @@ function renderCOAPane(pane, id, datos, analisis, calcs) {
       <tbody id="tbody-${id}"></tbody>
     </table>
   </div>
-  ${!finalizado ? `<button class="btn btn-secondary btn-sm" onclick="agregarAnalisisCustom('${id}')" style="margin-bottom:16px"><i class="fas fa-plus"></i> Agregar análisis</button>` : ''}
+  ${!finalizado ? `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-secondary btn-sm" onclick="agregarAnalisisCustom('${id}')"><i class="fas fa-plus"></i> Agregar análisis</button>
+    <button class="btn btn-primary btn-sm" onclick="modalAgregarMuestras('${id}')"><i class="fas fa-layer-group"></i> Agregar muestras/cisternas</button>
+  </div>` : ''}
 
   <div class="card" style="margin-bottom:16px">
     <h4 style="font-size:14px;font-weight:600;margin-bottom:12px"><i class="fas fa-calculator"></i> Calculadoras</h4>
@@ -1475,6 +1478,203 @@ async function agregarAnalisisCustom(coaId) {
     <td><span class="badge badge-pend" id="est-${nuevo.id}">PENDIENTE</span></td>
     <td><button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${nuevo.id},this)"><i class="fas fa-trash"></i></button></td>`;
   tbody.appendChild(tr);
+}
+
+function agregarFilaMuestra(tbody, coaId, aid, nombre, minimo, maximo) {
+  var tr = document.createElement('tr');
+  var mkInput = function(val, style) {
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = val || '';
+    inp.style.cssText = style || 'width:100%';
+    return inp;
+  };
+  // nombre
+  var tdN = document.createElement('td');
+  var inpN = mkInput(nombre, 'width:100%');
+  inpN.addEventListener('change', function(){ updateAnalisisField(this, coaId, aid, 'nombre'); });
+  tdN.appendChild(inpN);
+  // minimo
+  var tdMn = document.createElement('td');
+  var inpMn = mkInput(minimo, 'width:70px');
+  inpMn.id = 'min-new-' + aid;
+  inpMn.addEventListener('blur', function(){ updateAnalisisField(this, coaId, aid, 'minimo'); });
+  tdMn.appendChild(inpMn);
+  // maximo
+  var tdMx = document.createElement('td');
+  var inpMx = mkInput(maximo, 'width:70px');
+  inpMx.id = 'max-new-' + aid;
+  inpMx.addEventListener('blur', function(){ updateAnalisisField(this, coaId, aid, 'maximo'); });
+  tdMx.appendChild(inpMx);
+  // resultado
+  var tdR = document.createElement('td');
+  var inpR = mkInput('', 'width:100%');
+  inpR.dataset.aid = aid;
+  inpR.dataset.min = minimo || '';
+  inpR.dataset.max = maximo || '';
+  inpR.addEventListener('change', function(){ onResultadoChange(this, coaId); });
+  tdR.appendChild(inpR);
+  // aclaracion
+  var tdA = document.createElement('td');
+  var inpA = mkInput('', 'width:100%');
+  inpA.dataset.aid = aid;
+  inpA.addEventListener('change', function(){ updateAnalisisField(this, coaId, aid, 'aclaracion'); });
+  tdA.appendChild(inpA);
+  // estado
+  var tdE = document.createElement('td');
+  var span = document.createElement('span');
+  span.className = 'badge badge-pend';
+  span.id = 'est-' + aid;
+  span.textContent = 'PENDIENTE';
+  tdE.appendChild(span);
+  // eliminar
+  var tdX = document.createElement('td');
+  var btn = document.createElement('button');
+  btn.className = 'btn btn-danger btn-sm';
+  btn.innerHTML = '<i class="fas fa-trash"></i>';
+  btn.addEventListener('click', function(){ eliminarAnalisis(coaId, aid, this); });
+  tdX.appendChild(btn);
+  tr.appendChild(tdN); tr.appendChild(tdMn); tr.appendChild(tdMx);
+  tr.appendChild(tdR); tr.appendChild(tdA); tr.appendChild(tdE); tr.appendChild(tdX);
+  tbody.appendChild(tr);
+}
+
+function actualizarDesde() {
+  var prefijoSel = document.getElementById('ms-prefijo');
+  var customEl = document.getElementById('ms-custom');
+  var desdeEl = document.getElementById('ms-desde');
+  if (!prefijoSel || !desdeEl) return;
+  var prefijo = (prefijoSel.value === 'Otro' && customEl && customEl.value.trim())
+    ? customEl.value.trim().toUpperCase()
+    : prefijoSel.value;
+  var counters = window._prefixCounters || {};
+  // Find best match: exact or starts with prefix
+  var maxNum = 0;
+  Object.keys(counters).forEach(function(p) {
+    if (p.toUpperCase() === prefijo.toUpperCase() || p.toUpperCase().indexOf(prefijo.toUpperCase()) === 0) {
+      if (counters[p] > maxNum) maxNum = counters[p];
+    }
+  });
+  desdeEl.value = maxNum > 0 ? maxNum + 1 : 1;
+}
+
+function toggleAllMuestras(cb) {
+  document.querySelectorAll('.ms-check').forEach(function(c){ c.checked = cb.checked; });
+}
+
+async function modalAgregarMuestras(coaId) {
+  // Get current analisis list for this COA
+  var res = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?select=id,nombre,minimo,maximo,es_personalizado&certificado_id=eq.' + encodeURIComponent(coaId) + '&order=orden.asc', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var analisis = await res.json() || [];
+
+  // Auto-detect next number for each prefix by scanning existing analisis names
+  var prefixCounters = {};
+  analisis.forEach(function(a) {
+    var m = (a.nombre || '').match(/^(.*?)\s+(\d+)$/);
+    if (m) {
+      var prefix = m[1].trim();
+      var num = parseInt(m[2]);
+      if (!prefixCounters[prefix] || num > prefixCounters[prefix]) {
+        prefixCounters[prefix] = num;
+      }
+    }
+  });
+  // Store for use when prefix changes
+  window._prefixCounters = prefixCounters;
+
+  // Build checkboxes for selecting which analisis to replicate
+  var checksHtml = analisis.map(function(a) {
+    return '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:pointer">'
+      + '<input type="checkbox" class="ms-check" data-id="' + a.id + '" data-nombre="' + (a.nombre||'').replace(/"/g,'&quot;') + '" data-min="' + (a.minimo||'') + '" data-max="' + (a.maximo||'') + '" checked>'
+      + '<span>' + (a.nombre||'') + '</span></label>';
+  }).join('');
+
+  // Pre-calculate desde for default prefix (IBC)
+  window._prefixCounters = prefixCounters;
+  showModal('Agregar Muestras / Cisternas',
+    '<div class="form-row">'
+    + '<div class="fg"><label>Prefijo</label>'
+    + '<select id="ms-prefijo" onchange="actualizarDesde()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg3);color:var(--text);font-size:13px">'
+    + '<option value="IBC">IBC</option>'
+    + '<option value="Tambor">Tambor</option>'
+    + '<option value="Muestra">Muestra</option>'
+    + '<option value="Cisterna">Cisterna</option>'
+    + '<option value="Lote">Lote</option>'
+    + '<option value="Otro">Otro...</option>'
+    + '</select></div>'
+    + '<div class="fg"><label>Prefijo personalizado</label><input type="text" id="ms-custom" placeholder="Ej: Camión" oninput="actualizarDesde()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg3);color:var(--text);font-size:13px;text-transform:uppercase"></div>'
+    + '</div>'
+    + '<div class="form-row">'
+    + '<div class="fg"><label>Numeración comienza desde</label><input type="number" id="ms-desde" value="2" min="1" max="100" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg3);color:var(--text);font-size:13px"></div>'
+    + '<div class="fg"><label>Cantidad de muestras</label><input type="number" id="ms-cantidad" value="2" min="1" max="20" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg3);color:var(--text);font-size:13px"></div>'
+    + '</div>'
+    + '<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">Análisis a replicar:</div>'
+    + '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:7px;padding:8px">'
+    + '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);margin-bottom:4px">'
+    + '<input type="checkbox" id="ms-check-all" checked onchange="toggleAllMuestras(this)"> <strong>Seleccionar todos</strong></label>'
+    + checksHtml + '</div>',
+    function() { ejecutarAgregarMuestras(coaId); },
+    'Agregar'
+  );
+  setTimeout(actualizarDesde, 100);
+}
+
+async function ejecutarAgregarMuestras(coaId) {
+  var prefijoSel = document.getElementById('ms-prefijo').value;
+  var prefijoCustom = (document.getElementById('ms-custom').value || '').trim().toUpperCase();
+  var prefijo = (prefijoSel === 'Otro' && prefijoCustom) ? prefijoCustom : prefijoSel;
+  var cantidad = parseInt(document.getElementById('ms-cantidad').value) || 2;
+  var desde = parseInt(document.getElementById('ms-desde').value) || 2;
+
+  // Get selected analisis
+  var checks = Array.from(document.querySelectorAll('.ms-check:checked'));
+  if (!checks.length) { toast('Seleccioná al menos un análisis', 'err'); return; }
+
+  showLoader('Agregando muestras...');
+
+  // Get current max orden
+  var resOrd = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?select=orden&certificado_id=eq.' + encodeURIComponent(coaId) + '&order=orden.desc&limit=1', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var ordData = await resOrd.json();
+  var nextOrden = ordData && ordData.length > 0 ? ordData[0].orden + 1 : 1;
+
+  var tbody = document.getElementById('tbody-' + coaId);
+  var insertados = [];
+
+  for (var n = desde; n < desde + cantidad; n++) {
+    for (var i = 0; i < checks.length; i++) {
+      var cb = checks[i];
+      // Strip existing trailing "PREFIX N" or trailing number from original name
+      var baseNombre = cb.dataset.nombre;
+      // Remove trailing " WORD N" pattern (e.g. "IBC 1", "Tambor 2") 
+      baseNombre = baseNombre.replace(/\s+[A-Za-zÀ-ÿ]+\s+\d+$/, '');
+      // Also remove trailing standalone number (e.g. "Humedad KF (%) 1" → "Humedad KF (%)")
+      baseNombre = baseNombre.replace(/\s+\d+$/, '').trim();
+      var nombre = baseNombre + ' ' + prefijo + ' ' + n;
+      var minimo = cb.dataset.min || '';
+      var maximo = cb.dataset.max || '';
+
+      var resIns = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' },
+        body: JSON.stringify({ certificado_id: coaId, orden: nextOrden, nombre: nombre, minimo: minimo, maximo: maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: true })
+      });
+      var insData = await resIns.json();
+      var nuevo = Array.isArray(insData) ? insData[0] : insData;
+      nextOrden++;
+
+      // Add row to DOM
+      if (nuevo && tbody) {
+        agregarFilaMuestra(tbody, coaId, nuevo.id, nombre, minimo, maximo);
+      }
+    }
+  }
+
+  hideLoader();
+  toast(cantidad + ' ' + prefijo + 's agregados (' + checks.length + ' análisis cada uno)', 'ok');
 }
 
 async function eliminarAnalisis(coaId, aid, btn) {
