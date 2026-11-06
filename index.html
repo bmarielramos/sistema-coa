@@ -1906,9 +1906,10 @@ async function buscarCerts() {
   const lote = document.getElementById('b-lote').value.trim().toUpperCase();
   if (!prod && !lote) { toast('Ingrese al menos un criterio', 'err'); return; }
   showLoader('Buscando...');
-  const params = [`laboratorio_id=eq.${currentLab.id}`, `estado=neq.EN PROCESO`, `order=fecha.desc`, `limit=50`];
-  if (prod) params.push(`producto=ilike.*${prod}*`);
-  if (lote) params.push(`lote=ilike.*${lote}*`);
+  const params = [`laboratorio_id=eq.${currentLab.id}`, `estado=neq.EN PROCESO`, `order=fecha.desc,id.desc`, `limit=500`];
+  const _limpia = v => encodeURIComponent(v.replace(/[(),*"]/g, ' ').trim().replace(/\s+/g, '*'));
+  if (prod) params.push(`producto=ilike.*${_limpia(prod)}*`);
+  if (lote) params.push(`lote=ilike.*${_limpia(lote)}*`);
   const url = `${SUPABASE_URL}/rest/v1/certificados?select=*&${params.join('&')}`;
   const res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const data = await res.json();
@@ -2492,9 +2493,10 @@ async function adminBuscarCerts() {
   var lote = (document.getElementById('admin-b-lote').value || '').trim().toUpperCase();
   if (!prod && !lote) { toast('Ingresa al menos un criterio', 'err'); return; }
   showLoader('Buscando...');
-  var url = SUPABASE_URL + '/rest/v1/certificados?select=*&order=fecha.desc&limit=50';
-  if (prod) url += '&producto=ilike.*' + encodeURIComponent(prod) + '*';
-  if (lote) url += '&lote=ilike.*' + encodeURIComponent(lote) + '*';
+  var url = SUPABASE_URL + '/rest/v1/certificados?select=*&order=fecha.desc,id.desc&limit=500';
+  var _limpia = function(v){ return encodeURIComponent(v.replace(/[(),*"]/g, ' ').trim().replace(/\s+/g, '*')); };
+  if (prod) url += '&producto=ilike.*' + _limpia(prod) + '*';
+  if (lote) url += '&lote=ilike.*' + _limpia(lote) + '*';
   var res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   var data = await res.json();
   hideLoader();
@@ -2804,7 +2806,8 @@ async function buscarParaDisenio() {
   const term = document.getElementById('d-search').value.trim();
   if (!term) { toast('Ingrese término de búsqueda', 'err'); return; }
   showLoader('Buscando...');
-  const _dsUrl = `${SUPABASE_URL}/rest/v1/certificados?select=id,producto,lote,cliente,estado,fecha&laboratorio_id=eq.${currentLab.id}&or=(producto.ilike.*${term}*,lote.ilike.*${term}*,cliente.ilike.*${term}*,id.ilike.*${term}*)&limit=20`;
+  const _t = encodeURIComponent(term.replace(/[(),*"]/g, ' ').trim().replace(/\s+/g, '*'));
+  const _dsUrl = `${SUPABASE_URL}/rest/v1/certificados?select=id,producto,lote,cliente,estado,fecha&laboratorio_id=eq.${currentLab.id}&or=(producto.ilike.*${_t}*,lote.ilike.*${_t}*,cliente.ilike.*${_t}*,id.ilike.*${_t}*)&order=fecha.desc,id.desc&limit=200`;
   const _dsRes = await fetch(_dsUrl, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
   const data = await _dsRes.json();
   hideLoader();
