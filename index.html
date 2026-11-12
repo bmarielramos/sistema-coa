@@ -1095,7 +1095,18 @@ function filtrarProductoNuevoCert(q) {
 // ============================================================
 // INICIAR CERTIFICADO
 // ============================================================
+// Seguro anti doble toque: evita crear dos COA si se toca "Iniciar" dos veces seguidas
 async function iniciarCertificado() {
+  if (window._creandoCert) return;
+  window._creandoCert = true;
+  try { await _iniciarCertificadoImpl(); }
+  finally { window._creandoCert = false; }
+}
+
+async function _iniciarCertificadoImpl() {
+  // Se lee y se limpia enseguida, para que no quede "confirmado" de una corrida anterior
+  const yaConfirmado = window._dupConfirmado === true;
+  window._dupConfirmado = false;
   var _pSearch = document.getElementById('f-producto-search');
   var _pHidden = document.getElementById('f-producto');
   const producto = (_pHidden && _pHidden.value) ? _pHidden.value.trim().toUpperCase() : (_pSearch ? _pSearch.value.trim().toUpperCase() : '');
@@ -1117,10 +1128,24 @@ async function iniciarCertificado() {
   if (existing && existing.length > 0) {
     const enProceso = existing.find(function(c){ return c.estado === 'EN PROCESO'; });
     const finalizado = existing.find(function(c){ return c.estado !== 'EN PROCESO'; });
-    if (enProceso) { toast('Ya existe un certificado EN PROCESO para este producto y lote', 'err'); return; }
-    if (finalizado) {
-      const confirmar = confirm('Ya existe un certificado finalizado para ' + producto + ' - Lote ' + lote + '. ¿Querés crear uno nuevo de todas formas?');
-      if (!confirmar) return;
+    const escH = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    if (enProceso) {
+      showModal(
+        'Certificado ya en proceso',
+        'Ya existe un certificado <b>EN PROCESO</b> para <b>' + escH(producto) + '</b> - Lote <b>' + escH(lote) + '</b>.<br><br>Buscalo en la pestaña <b>En Proceso</b> y continuá desde ahí.',
+        null,
+        'Entendido'
+      );
+      return;
+    }
+    if (finalizado && !yaConfirmado) {
+      showModal(
+        'Lote ya certificado',
+        'Ya existe un certificado <b>finalizado</b> para <b>' + escH(producto) + '</b> - Lote <b>' + escH(lote) + '</b>.<br><br>¿Querés crear uno nuevo de todas formas?',
+        function() { window._dupConfirmado = true; iniciarCertificado(); },
+        'Crear igual'
+      );
+      return;
     }
   }
 
