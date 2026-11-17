@@ -412,14 +412,18 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
     <div class="tab-pane" id="tab-buscar">
       <div class="card">
         <h3><i class="fas fa-search"></i> Buscar Certificados Finalizados</h3>
-        <div class="form-row">
+        <div class="form-row triple">
           <div class="fg">
             <label>Producto</label>
-            <input type="text" id="b-producto" placeholder="Ej: HARINA DE TRIGO" style="text-transform:uppercase">
+            <input type="text" id="b-producto" placeholder="Ej: HARINA DE TRIGO" style="text-transform:uppercase" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarCerts()}">
           </div>
           <div class="fg">
             <label>Lote</label>
-            <input type="text" id="b-lote" placeholder="Ej: LOTE-001" style="text-transform:uppercase">
+            <input type="text" id="b-lote" placeholder="Ej: LOTE-001" style="text-transform:uppercase" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarCerts()}">
+          </div>
+          <div class="fg">
+            <label>Cliente / Proveedor</label>
+            <input type="text" id="b-cliente" placeholder="Ej: NOURION" style="text-transform:uppercase" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarCerts()}">
           </div>
         </div>
         <div class="btn-group">
@@ -1987,19 +1991,30 @@ async function loadProceso() {
 // BUSCAR FINALIZADOS
 // ============================================================
 async function buscarCerts() {
+  if (window._buscandoFin) return;   // evita buscar dos veces si se aprieta Enter varias veces
   const prod = document.getElementById('b-producto').value.trim().toUpperCase();
   const lote = document.getElementById('b-lote').value.trim().toUpperCase();
-  if (!prod && !lote) { toast('Ingrese al menos un criterio', 'err'); return; }
+  const cliente = document.getElementById('b-cliente').value.trim().toUpperCase();
+  if (!prod && !lote && !cliente) { toast('Ingrese al menos un criterio', 'err'); return; }
+  window._buscandoFin = true;
   showLoader('Buscando...');
-  const params = [`laboratorio_id=eq.${currentLab.id}`, `estado=neq.EN PROCESO`, `order=fecha.desc,id.desc`, `limit=500`];
-  const _limpia = v => encodeURIComponent(v.replace(/[(),*"]/g, ' ').trim().replace(/\s+/g, '*'));
-  if (prod) params.push(`producto=ilike.*${_limpia(prod)}*`);
-  if (lote) params.push(`lote=ilike.*${_limpia(lote)}*`);
-  const url = `${SUPABASE_URL}/rest/v1/certificados?select=*&${params.join('&')}`;
-  const res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const data = await res.json();
-  hideLoader();
-  renderBuscarResults(Array.isArray(data) ? data : []);
+  try {
+    const params = [`laboratorio_id=eq.${currentLab.id}`, `estado=neq.EN PROCESO`, `order=fecha.desc,id.desc`, `limit=500`];
+    const _limpia = v => encodeURIComponent(v.replace(/[(),*"]/g, ' ').trim().replace(/\s+/g, '*'));
+    if (prod) params.push(`producto=ilike.*${_limpia(prod)}*`);
+    if (lote) params.push(`lote=ilike.*${_limpia(lote)}*`);
+    if (cliente) params.push(`cliente=ilike.*${_limpia(cliente)}*`);
+    const url = `${SUPABASE_URL}/rest/v1/certificados?select=*&${params.join('&')}`;
+    const res = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const data = await res.json();
+    renderBuscarResults(Array.isArray(data) ? data : []);
+  } catch (e) {
+    toast('No se pudo buscar. Reintentá en unos segundos.', 'err');
+    console.error('Error en búsqueda de finalizados:', e);
+  } finally {
+    hideLoader();
+    window._buscandoFin = false;
+  }
 }
 
 async function cargarUltimos() {
