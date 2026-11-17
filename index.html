@@ -1038,6 +1038,9 @@ function toast(msg, type = 'info') {
 // MODAL
 // ============================================================
 function showModal(title, body, confirmCb, confirmText = 'Confirmar') {
+  document.getElementById('modalConfirmBtn').style.display = '';
+  var _cancel = document.querySelector('#modal .modal-footer .btn-secondary');
+  if (_cancel) _cancel.textContent = 'Cancelar';
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').innerHTML = body;
   document.getElementById('modalConfirmBtn').textContent = confirmText;
@@ -1262,7 +1265,7 @@ function renderCOAPane(pane, id, datos, analisis, calcs) {
   <h4 style="margin-bottom:12px;font-size:15px;font-weight:600"><i class="fas fa-flask"></i> Análisis Requeridos</h4>
   <div class="table-wrap" style="margin-bottom:16px">
     <table class="data-table" id="tbl-${id}">
-      <thead><tr><th>Análisis</th><th>Mínimo</th><th>Máximo</th><th>Resultado</th><th>Aclaración</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr>${finalizado ? '<th>Análisis</th><th style="text-align:center">Especificación</th><th style="text-align:center">Resultado</th><th>Aclaración</th><th>Estado</th>' : '<th>Análisis</th><th>Mínimo</th><th>Máximo</th><th>Resultado</th><th>Aclaración</th><th>Estado</th><th></th>'}</tr></thead>
       <tbody id="tbody-${id}"></tbody>
     </table>
   </div>
@@ -1292,6 +1295,8 @@ function renderCOAPane(pane, id, datos, analisis, calcs) {
     <button class="btn btn-primary" onclick="finalizarCert('${id}')"><i class="fas fa-check-circle"></i> Finalizar Certificado</button>
   </div>` : `
   <div class="btn-group">
+    <button class="btn btn-primary" onclick="imprimirDirecto('${id}')"><i class="fas fa-print"></i> Imprimir COA</button>
+    <button class="btn btn-secondary" onclick="abrirEnDisenio('${id}')"><i class="fas fa-palette"></i> Abrir en Diseñar</button>
     <button class="btn ${datos.email_enviado ? 'btn-success' : 'btn-info'}" id="btn-email-${id}" onclick="enviarEmail('${id}')">
       <i class="fas ${datos.email_enviado ? 'fa-check' : 'fa-envelope'}"></i> ${datos.email_enviado ? 'Email enviado ✓' : 'Enviar por Email'}
     </button>
@@ -1311,6 +1316,7 @@ function renderAnalisisRows(coaId, analisis, readOnly) {
   tbody.innerHTML = '';
   analisis.forEach((a, idx) => {
     const tr = document.createElement('tr');
+    if (readOnly) { tr.innerHTML = filaFinalizadaHtml(a); tbody.appendChild(tr); return; }
     const badgeClass = a.estado === 'APROBADO' ? 'badge-ok' : a.estado === 'DESAPROBADO' ? 'badge-err' : 'badge-pend';
     // Nombre cell - editable if personalizado OR in edit mode
     const nombreCell = a.es_personalizado
@@ -1405,6 +1411,43 @@ function onResultadoChange(input, coaId) {
   }
   input.value = valor;
   autoSave(coaId);
+}
+
+// Escapa texto para HTML
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Texto de especificación para COA, mail y vistas: Mín. X · Máx. X · rango · texto.
+// Un mínimo 0 con máximo numérico se muestra solo como Máx. Devuelve '' si no hay límites.
+function especTexto(minimo, maximo) {
+  var lim = function(v) { return String(v == null ? '' : v).trim().replace(/^'+/, '').trim(); };
+  var mn = lim(minimo), mx = lim(maximo);
+  var sin = function(v) { var u = v.toUpperCase(); return !v || u === 'N/A' || u === 'NA' || u === '-'; };
+  var esN = function(v) { return v !== '' && !isNaN(parseFloat(v.replace(',', '.'))); };
+  var cero = function(v) { return esN(v) && parseFloat(v.replace(',', '.')) === 0; };
+  if (!sin(mn) && !sin(mx)) {
+    if (cero(mn)) return esN(mx) ? 'Máx. ' + mx : mx;
+    return mn + ' - ' + mx;
+  }
+  if (!sin(mn)) return esN(mn) ? 'Mín. ' + mn : mn;
+  if (!sin(mx)) return esN(mx) ? 'Máx. ' + mx : mx;
+  return '';
+}
+
+// Celdas de un análisis en la vista de certificado finalizado (solo lectura)
+function filaFinalizadaHtml(a) {
+  var tec = a.nombre || '';
+  var nCoa = a.nombre_coa || tec;
+  var bc = a.estado === 'APROBADO' ? 'badge-ok' : a.estado === 'DESAPROBADO' ? 'badge-err' : 'badge-pend';
+  return '<td><div style="font-weight:600">' + escHtml(nCoa) + '</div>'
+    + (nCoa !== tec ? '<div style="font-size:11px;color:var(--text2)">' + escHtml(tec) + '</div>' : '')
+    + (a.incluir_en_coa === false ? '<div style="font-size:11px;color:var(--warning)">No se imprime en el COA</div>' : '')
+    + '</td>'
+    + '<td style="text-align:center">' + escHtml(especTexto(a.minimo, a.maximo) || '—') + '</td>'
+    + '<td style="text-align:center;font-weight:700">' + escHtml(a.resultado || '') + '</td>'
+    + '<td>' + escHtml(a.aclaracion || '') + '</td>'
+    + '<td><span class="badge ' + bc + '" id="est-' + a.id + '">' + escHtml(a.estado || 'PENDIENTE') + '</span></td>';
 }
 
 function calcularEstado(valor, min, max) {
@@ -1997,39 +2040,63 @@ async function togglePasado(certId, cb) {
   toast(cb.checked ? 'Marcado como pasado' : 'Desmarcado', 'ok');
 }
 
+async function cargarCertCompleto(id) {
+  var hd = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+  var enc = encodeURIComponent(id);
+  var r1 = await fetch(SUPABASE_URL + '/rest/v1/certificados?select=*&id=eq.' + enc, { headers: hd });
+  var d1 = await r1.json();
+  var r2 = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?select=*&certificado_id=eq.' + enc + '&order=orden.asc', { headers: hd });
+  var d2 = await r2.json();
+  var cert = Array.isArray(d1) ? d1[0] : d1;
+  return cert ? Object.assign({}, cert, { analisis: Array.isArray(d2) ? d2 : [] }) : null;
+}
+
+// Imprime el COA directamente (usa el filtro guardado de análisis; sin cliente ni aclaraciones)
+async function imprimirDirecto(id) {
+  showLoader('Preparando impresión...');
+  var data = await cargarCertCompleto(id);
+  hideLoader();
+  if (!data) { toast('No se encontró el certificado', 'err'); return; }
+  imprimirCert({ data: data, tipo: 'analisis', cliente: false, aclar: false, obs: false });
+}
+
+// Abre el certificado en la pestaña Diseñar para ajustar filtros, tipo de documento, etc. e imprimir
+async function abrirEnDisenio(id) {
+  closeModal();
+  switchTab('disenio', document.querySelector('.tab-btn[data-tab="disenio"]'));
+  await cargarEnEditor(id);
+}
+
 async function verCertFinalizado(id) {
   showLoader('Cargando...');
-  const _vcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const _vcData = await _vcRes.json();
-  const cert = Array.isArray(_vcData) ? _vcData[0] : _vcData;
-  const _vaRes = await fetch(`${SUPABASE_URL}/rest/v1/analisis_resultados?select=*&certificado_id=eq.${encodeURIComponent(id)}&order=orden.asc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-  const analisis = await _vaRes.json();
+  var cert = await cargarCertCompleto(id);
   hideLoader();
-  const bc = cert.estado==='APROBADO'?'badge-ok':cert.estado==='DESAPROBADO'?'badge-err':'badge-proc';
-  const tbody = (analisis||[]).map(a => {
-    const bc2 = a.estado==='APROBADO'?'badge-ok':a.estado==='DESAPROBADO'?'badge-err':'badge-pend';
-    return `<tr><td>${a.nombre}</td><td>${a.minimo||''}</td><td>${a.maximo||''}</td><td><b>${a.resultado||''}</b></td><td>${a.aclaracion||''}</td><td><span class="badge ${bc2}">${a.estado}</span></td></tr>`;
-  }).join('');
-  showModal(
-    `Certificado ${id}`,
-    `<span class="badge ${bc}" style="margin-bottom:12px;display:inline-block">${cert.estado}</span>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
-      <div class="locked-item"><div class="lk-label">Producto</div><div class="lk-value">${cert.producto}</div></div>
-      <div class="locked-item"><div class="lk-label">Lote</div><div class="lk-value">${cert.lote}</div></div>
-      <div class="locked-item"><div class="lk-label">Cliente</div><div class="lk-value">${cert.cliente}</div></div>
-      <div class="locked-item"><div class="lk-label">Fecha</div><div class="lk-value">${new Date(cert.fecha).toLocaleDateString()}</div></div>
-    </div>
-    <div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
-      <table class="data-table" style="min-width:560px;width:100%">
-        <thead><tr><th>Análisis</th><th>Min</th><th>Max</th><th>Resultado</th><th>Aclaración</th><th>Estado</th></tr></thead>
-        <tbody>${tbody}</tbody>
-      </table>
-    </div>
-    ${cert.observaciones ? `<p style="margin-top:12px"><b>Observaciones:</b> ${cert.observaciones}</p>` : ''}`,
-    null, 'Cerrar'
-  );
+  if (!cert) { toast('No se encontró el certificado', 'err'); return; }
+  var analisis = cert.analisis || [];
+  var bc = cert.estado === 'APROBADO' ? 'badge-ok' : cert.estado === 'DESAPROBADO' ? 'badge-err' : 'badge-proc';
+  var filas = analisis.map(function(a) { return '<tr>' + filaFinalizadaHtml(a) + '</tr>'; }).join('');
+  var body = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+    + '<span class="badge ' + bc + '">' + escHtml(cert.estado) + '</span>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<button type="button" class="btn btn-primary btn-sm" id="ver-btn-print"><i class="fas fa-print"></i> Imprimir COA</button>'
+    + '<button type="button" class="btn btn-secondary btn-sm" id="ver-btn-disenio"><i class="fas fa-palette"></i> Abrir en Diseñar</button>'
+    + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">'
+    + '<div class="locked-item"><div class="lk-label">Producto</div><div class="lk-value">' + escHtml(cert.producto) + '</div></div>'
+    + '<div class="locked-item"><div class="lk-label">Lote</div><div class="lk-value">' + escHtml(cert.lote) + '</div></div>'
+    + '<div class="locked-item"><div class="lk-label">Cliente / Proveedor</div><div class="lk-value">' + escHtml(cert.cliente) + '</div></div>'
+    + '<div class="locked-item"><div class="lk-label">Fecha</div><div class="lk-value">' + new Date(cert.fecha).toLocaleDateString() + '</div></div>'
+    + '</div>'
+    + '<div style="overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">'
+    + '<table class="data-table" style="min-width:560px;width:100%"><thead><tr><th>Análisis</th><th style="text-align:center">Especificación</th><th style="text-align:center">Resultado</th><th>Aclaración</th><th>Estado</th></tr></thead>'
+    + '<tbody>' + filas + '</tbody></table></div>'
+    + (cert.observaciones ? '<p style="margin-top:12px"><b>Observaciones:</b> ' + escHtml(cert.observaciones) + '</p>' : '');
+  showModal('Certificado ' + id, body, null, 'Cerrar');
   document.getElementById('modalConfirmBtn').style.display = 'none';
-  setTimeout(() => document.getElementById('modalConfirmBtn').style.display = '', 100);
+  var cancelBtn = document.querySelector('#modal .modal-footer .btn-secondary');
+  if (cancelBtn) cancelBtn.textContent = 'Cerrar';
+  document.getElementById('ver-btn-print').addEventListener('click', function() { imprimirDirecto(id); });
+  document.getElementById('ver-btn-disenio').addEventListener('click', function() { abrirEnDisenio(id); });
 }
 
 // ============================================================
@@ -2350,14 +2417,15 @@ function calcCC(btn, coaId, calcId) {
   if (el) el.value = res;
 }
 
-function imprimirCert() {
-  var d = currentDesignData;
+function imprimirCert(ov) {
+  ov = (ov && ov.data) ? ov : {};
+  var d = ov.data || currentDesignData;
   if (!d) { toast('No hay certificado cargado', 'err'); return; }
 
-  var tipo = document.getElementById('d-tipo').value;
-  var mostrarCliente = document.getElementById('d-cliente').checked;
-  var mostrarObs = document.getElementById('d-obs').checked;
-  var mostrarAclar = document.getElementById('d-aclar').checked;
+  var tipo = ov.tipo || document.getElementById('d-tipo').value;
+  var mostrarCliente = ov.cliente !== undefined ? ov.cliente : document.getElementById('d-cliente').checked;
+  var mostrarObs = ov.obs !== undefined ? ov.obs : document.getElementById('d-obs').checked;
+  var mostrarAclar = ov.aclar !== undefined ? ov.aclar : document.getElementById('d-aclar').checked;
 
   var esFerarquimica = currentLab && currentLab.id === 'ferarquimica';
   var logoUrl = esFerarquimica
@@ -2387,7 +2455,7 @@ function imprimirCert() {
   var panel = document.getElementById('coa-filter-panel');
   var checks = document.querySelectorAll('.coa-imp-check');
   var analisis;
-  if (panel && panel.style.display !== 'none' && checks.length > 0) {
+  if (!ov.data && panel && panel.style.display !== 'none' && checks.length > 0) {
     var checkedIds = [];
     checks.forEach(function(cb) { if (cb.checked) checkedIds.push(String(cb.dataset.aid)); });
     analisis = (d.analisis || []).filter(function(a) { return checkedIds.indexOf(String(a.id)) >= 0; });
@@ -2396,17 +2464,7 @@ function imprimirCert() {
   }
   for (var i = 0; i < analisis.length; i++) {
     var a = analisis[i];
-    var spec = '';
-    var sinLim = function(v) { var u=(v||'').trim().toUpperCase(); return !v||u==='N/A'||u==='-'||u==='NA'; };
-    var esN = function(v) { return v && !isNaN(parseFloat((v||'').replace(',','.'))); };
-    var minCero = function(v) { return esN(v) && parseFloat((v||'').replace(',','.')) === 0; };
-    if (!sinLim(a.minimo) && !sinLim(a.maximo)) {
-      // Si mínimo es 0, solo mostrar Máx.
-      if (minCero(a.minimo)) spec = esN(a.maximo) ? 'Máx. ' + a.maximo : a.maximo;
-      else spec = a.minimo + ' - ' + a.maximo;
-    }
-    else if (!sinLim(a.minimo) && sinLim(a.maximo)) spec = esN(a.minimo) ? 'Mín. ' + a.minimo : a.minimo;
-    else if (sinLim(a.minimo) && !sinLim(a.maximo)) spec = esN(a.maximo) ? 'Máx. ' + a.maximo : a.maximo;
+    var spec = especTexto(a.minimo, a.maximo);
     var bg = 'transparent';
     var aclarCol  = mostrarAclar     ? '<td style="padding:7px 10px;font-size:9pt;color:#555;font-style:italic">' + (a.aclaracion || '') + '</td>' : '';
     var estadoCol = tipo === 'rechazo' ? '<td style="padding:7px 10px;text-align:center;font-weight:bold">' + (a.estado || '') + '</td>' : '';
@@ -2490,6 +2548,67 @@ function imprimirCert() {
 // ============================================================
 // ENVIAR EMAIL
 // ============================================================
+// Resumen de las calculadoras guardadas, para el respaldo por mail
+function calcsMailHtml(calcs) {
+  if (!calcs || !calcs.length) return '';
+  var tipos = { ma: 'Materia activa', ia: 'Índice amino', cc: 'Concentración' };
+  var lbl = { pm: 'PM', gr: 'Gramos muestra', ch: 'Concentración', vh: 'Volumen (ml)', vol: 'Volumen (ml)' };
+  var filas = calcs.map(function(c) {
+    var campos = c.campos || {};
+    var datos = [];
+    Object.keys(campos).forEach(function(k) {
+      if (k === 'componentes') {
+        var lista = [];
+        try { lista = JSON.parse(campos[k]) || []; } catch (e) {}
+        lista.forEach(function(x) {
+          if (x.nombre || x.cantidad) datos.push((x.tipo || 'componente') + ': ' + (x.nombre || '') + ' ' + (x.cantidad || '') + ' ' + (x.unidad || '') + (x.pureza && x.pureza !== '100' ? ' (pureza ' + x.pureza + '%)' : ''));
+        });
+      } else if (campos[k] !== '' && campos[k] != null && lbl[k]) {
+        datos.push(lbl[k] + ': ' + campos[k]);
+      }
+    });
+    return '<tr><td>' + escHtml(tipos[c.tipo] || c.tipo || '') + (c.nombre ? '<br><small>' + escHtml(c.nombre) + '</small>' : '')
+      + '</td><td>' + datos.map(escHtml).join('<br>') + '</td><td>' + escHtml(c.resultado || '').replace(/\n/g, '<br>') + '</td></tr>';
+  }).join('');
+  return '<h3>Calculadoras</h3><table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:12px">'
+    + '<thead><tr bgcolor="#f0f0f0"><th align="left">Cálculo</th><th align="left">Datos</th><th align="left">Resultado</th></tr></thead><tbody>' + filas + '</tbody></table>';
+}
+
+// Cuerpo del mail: respaldo completo del certificado (todo lo que se ve en el COA y más).
+// compacto=true omite el nombre técnico bajo cada análisis para reducir el tamaño.
+function armarMailRespaldo(cert, certId, analisis, calcs, compacto) {
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var f = new Date(cert.fecha);
+  var fab = meses[f.getMonth()] + ' de ' + f.getFullYear();
+  var venc = meses[f.getMonth()] + ' de ' + (f.getFullYear() + 2);
+  var fila = function(k, v) { return '<tr><td><b>' + k + '</b></td><td>' + escHtml(v) + '</td></tr>'; };
+  var color = function(e) { return e === 'APROBADO' ? 'green' : e === 'DESAPROBADO' ? 'red' : '#b45309'; };
+  var cabecera = fila('Material', cert.producto) + fila('Lote', cert.lote)
+    + fila('Fecha de fabricación', fab) + fila('Fecha de vencimiento', venc)
+    + fila('Cliente / Proveedor', cert.cliente) + fila('Cantidad', (cert.cantidad || 0) + ' Kg')
+    + fila('Operador', cert.operador) + fila('Motivo', cert.otro_motivo || cert.motivo || '')
+    + fila('Fecha', f.toLocaleDateString()) + fila('Estado', cert.estado) + fila('ID', certId)
+    + (cert.reformulacion_de ? fila('Reformulación de', cert.reformulacion_de) : '');
+  var filas = (analisis || []).map(function(a) {
+    var tec = a.nombre || '';
+    var nCoa = a.nombre_coa || tec;
+    return '<tr><td>' + escHtml(nCoa)
+      + (!compacto && nCoa !== tec ? '<br><small style="color:#888">' + escHtml(tec) + '</small>' : '')
+      + (a.incluir_en_coa === false ? '<br><small style="color:#b45309">No sale en el COA impreso</small>' : '')
+      + '</td><td align="center">' + escHtml(especTexto(a.minimo, a.maximo) || '—')
+      + '</td><td align="center"><b>' + escHtml(a.resultado || '') + '</b></td><td>' + escHtml(a.aclaracion || '')
+      + '</td><td align="center" style="color:' + color(a.estado) + '">' + escHtml(a.estado || 'PENDIENTE') + '</td></tr>';
+  }).join('');
+  return '<h2>Certificado de Análisis — ' + escHtml(cert.producto) + '</h2>'
+    + '<table cellpadding="3" cellspacing="0" style="font-size:13px">' + cabecera + '</table>'
+    + '<h3>Análisis</h3><table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:12px">'
+    + '<thead><tr bgcolor="#f0f0f0"><th align="left">Análisis</th><th>Especificación</th><th>Resultado</th><th align="left">Aclaración</th><th>Estado</th></tr></thead>'
+    + '<tbody>' + filas + '</tbody></table>'
+    + (cert.observaciones ? '<h3>Observaciones</h3><p>' + escHtml(cert.observaciones).replace(/\n/g, '<br>') + '</p>' : '')
+    + calcsMailHtml(calcs)
+    + '<p style="margin-top:16px;font-size:12px;color:#666">Respaldo enviado desde Sistema COA — ' + escHtml(currentLab.nombre) + '</p>';
+}
+
 async function enviarEmail(certId) {
   showLoader('Cargando datos del certificado...');
   const _emcRes = await fetch(`${SUPABASE_URL}/rest/v1/certificados?select=*&id=eq.${encodeURIComponent(certId)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
@@ -2499,14 +2618,20 @@ async function enviarEmail(certId) {
   const analisis = await _emaRes.json();
   hideLoader();
   const emails = (currentLab.email_destino || '').split(',').map(e => e.trim());
-  const tablaHtml = (analisis||[]).map(a => `<tr><td>${a.nombre_coa || a.nombre}</td><td style="text-align:center">${a.minimo||''} - ${a.maximo||''}</td><td style="text-align:center;font-weight:bold">${a.resultado||''}</td><td style="text-align:center;color:${a.estado==='APROBADO'?'green':'red'}">${a.estado||''}</td></tr>`).join('');
-  const htmlBody = `<h2>Certificado de Análisis — ${cert.producto}</h2>
-    <p><strong>ID:</strong> ${certId}</p><p><strong>Lote:</strong> ${cert.lote}</p>
-    <p><strong>Cliente:</strong> ${cert.cliente}</p><p><strong>Estado:</strong> ${cert.estado}</p>
-    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%">
-      <thead><tr style="background:#f0f0f0"><th>Análisis</th><th>Especificación</th><th>Resultado</th><th>Estado</th></tr></thead>
-      <tbody>${tablaHtml}</tbody></table>
-    <p style="margin-top:16px;font-size:12px;color:#666">Enviado desde Sistema COA — ${currentLab.nombre}</p>`;
+  let calcs = [];
+  try {
+    const _emkRes = await fetch(`${SUPABASE_URL}/rest/v1/calculadoras?select=*&certificado_id=eq.${encodeURIComponent(certId)}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const _emkData = await _emkRes.json();
+    if (Array.isArray(_emkData)) calcs = _emkData;
+  } catch (e) { console.error('No se pudieron leer las calculadoras para el mail', e); }
+  // EmailJS limita el tamaño del mensaje (~50 KB): se arma completo y, solo si no entra, sin el nombre técnico
+  const _bytes = function(t) { return new Blob([t]).size; };
+  let htmlBody = armarMailRespaldo(cert, certId, analisis, calcs, false);
+  if (_bytes(htmlBody) > 45000) htmlBody = armarMailRespaldo(cert, certId, analisis, calcs, true);
+  if (_bytes(htmlBody) > 45000) {
+    toast('El certificado es demasiado grande para enviarse completo por mail (' + Math.round(_bytes(htmlBody) / 1000) + ' KB). No se envió.', 'err');
+    return;
+  }
   showLoader('Enviando email...');
   try {
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
@@ -2933,14 +3058,7 @@ async function generarHTMLEditor() {
       ${tipo==='rechazo'?'<th style="padding:10px;border:1px solid #ccc;text-align:center">Estado</th>':''}
     </tr></thead>
     <tbody>${d.analisis.filter(a => a.incluir_en_coa !== false).map((a,i) => {
-      const sinLim2 = v => !v || v.trim().toUpperCase() === 'N/A' || v.trim() === '-';
-      const esN2 = v => v && !isNaN(parseFloat(v.replace(',','.')));
-      const minCero2 = v => esN2(v) && parseFloat(v.replace(',','.')) === 0;
-      let spec = 'N/A';
-      if (!sinLim2(a.minimo) && !sinLim2(a.maximo)) {
-        spec = minCero2(a.minimo) ? (esN2(a.maximo) ? 'Máx. '+a.maximo : a.maximo) : a.minimo+' - '+a.maximo;
-      } else if (!sinLim2(a.minimo)) { spec = esN2(a.minimo) ? 'Mín. '+a.minimo : a.minimo; }
-      else if (!sinLim2(a.maximo)) { spec = esN2(a.maximo) ? 'Máx. '+a.maximo : a.maximo; }
+      const spec = especTexto(a.minimo, a.maximo) || 'N/A';
       const bg = i%2===0?'background:transparent':'background:#f9f9f9';
       return `<tr style="${bg}">
         <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre_coa || a.nombre}</td>
@@ -3004,13 +3122,15 @@ async function guardarCalcs(coaId) {
       var gr = block.querySelector('.cf-gr') ? block.querySelector('.cf-gr').value : '';
       var ch = block.querySelector('.cf-ch') ? block.querySelector('.cf-ch').value : '';
       var vh = block.querySelector('.cf-vh') ? block.querySelector('.cf-vh').value : '';
-      campos = { pm: pm, gr: gr, ch: ch, vh: vh };
+      var volMA = block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '100';
+      campos = { pm: pm, gr: gr, ch: ch, vh: vh, vol: volMA };
       if (resultado) {
         textoCalcs += NL + (nombre || 'MATERIA ACTIVA') + ':' + NL;
         if (pm) textoCalcs += '  PM: ' + pm + NL;
         if (gr) textoCalcs += '  Gramos muestra: ' + gr + 'g' + NL;
         if (ch) textoCalcs += '  Conc. Hyamine: ' + ch + NL;
         if (vh) textoCalcs += '  Vol. Hyamine: ' + vh + 'ml' + NL;
+        textoCalcs += '  Volumen solución inicial: ' + volMA + 'ml' + NL;
         textoCalcs += '  Resultado: ' + resultado + NL;
       }
     } else if (block.querySelector('.cf-gr') && !block.querySelector('.cf-vol')) {
@@ -3028,7 +3148,7 @@ async function guardarCalcs(coaId) {
     } else if (block.querySelector('.cf-vol')) {
       var vol2 = block.querySelector('.cf-vol') ? block.querySelector('.cf-vol').value : '';
       var comps = [];
-      block.querySelectorAll('.cc-comp-row').forEach(function(row) {
+      block.querySelectorAll('.cc-row').forEach(function(row) {
         comps.push({
           tipo: row.querySelector('.cc-tipo') ? row.querySelector('.cc-tipo').value : '',
           nombre: row.querySelector('.cc-nombre') ? row.querySelector('.cc-nombre').value : '',
