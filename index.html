@@ -446,8 +446,14 @@ table.data-table input[type=text]:focus{border-color:var(--accent);outline:none}
           <div class="analisis-bloque" data-idx="0">
             <div class="form-row">
               <div class="fg">
-                <label>Análisis</label>
+                <label>Análisis (nombre técnico · lo ven las técnicas)</label>
                 <input type="text" class="g-nombre" placeholder="Ej: pH (unidad)" maxlength="500">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="fg">
+                <label>Nombre en el COA <span style="font-weight:400;color:var(--text2);text-transform:none">(opcional · si queda vacío se arma solo o sale el nombre técnico)</span></label>
+                <input type="text" class="g-nombre-coa" placeholder="Ej: Materia Activa % (PM:444)" maxlength="500">
               </div>
             </div>
             <div class="form-row triple">
@@ -1166,7 +1172,7 @@ async function _iniciarCertificadoImpl() {
   const params = await _parRes.json();
   if (params && params.length > 0) {
     const analisisRows = params.map((p, i) => ({
-      certificado_id: id, orden: i + 1, nombre: p.analisis,
+      certificado_id: id, orden: i + 1, nombre: p.analisis, nombre_coa: p.nombre_coa || null,
       minimo: p.minimo, maximo: p.maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: false,
       parametro_id: p.id,
       incluir_en_coa: p.incluir_en_coa !== false
@@ -1310,6 +1316,10 @@ function renderAnalisisRows(coaId, analisis, readOnly) {
     const nombreCell = a.es_personalizado
       ? `<input type="text" value="${a.nombre}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre')" style="width:100%">`
       : `<span id="nombre-txt-${a.id}">${a.nombre}</span><input type="text" id="nombre-inp-${a.id}" value="${a.nombre}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre')" style="width:100%;display:none">`;
+    const coaVal = (a.nombre_coa || '').replace(/"/g, '&quot;');
+    const coaExtra = a.es_personalizado
+      ? (a.nombre_coa ? `<div style="font-size:11px;color:var(--text2);margin-top:3px">En el COA: ${a.nombre_coa}</div>` : '')
+      : `<div style="font-size:11px;color:var(--text2);margin-top:3px">En el COA: <span id="coa-txt-${a.id}">${a.nombre_coa || '(igual al nombre técnico)'}</span><input type="text" id="coa-inp-${a.id}" value="${coaVal}" placeholder="Nombre en el COA (vacío = igual al técnico)" onchange="updateAnalisisField(this,'${coaId}',${a.id},'nombre_coa')" style="width:100%;display:none;margin-top:3px"></div>`;
     const minCell = a.es_personalizado
       ? `<input type="text" value="${a.minimo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'minimo')" style="width:70px">`
       : `<span id="min-txt-${a.id}">${a.minimo||''}</span><input type="text" id="min-inp-${a.id}" value="${a.minimo||''}" onchange="updateAnalisisField(this,'${coaId}',${a.id},'minimo')" style="width:70px;display:none">`;
@@ -1325,7 +1335,7 @@ function renderAnalisisRows(coaId, analisis, readOnly) {
            <button class="btn btn-danger btn-sm" onclick="eliminarAnalisis('${coaId}',${a.id},this)"><i class="fas fa-trash"></i></button>
          </div>`;
     tr.innerHTML = `
-      <td>${nombreCell}</td>
+      <td>${nombreCell}${coaExtra}</td>
       <td>${minCell}</td>
       <td>${maxCell}</td>
       <td><input type="text" value="${a.resultado||''}" ${readOnly?'disabled':''} data-aid="${a.id}" data-min="${a.minimo||''}" data-max="${a.maximo||''}" onchange="onResultadoChange(this,'${coaId}')" style="width:100%"></td>
@@ -1339,7 +1349,7 @@ function renderAnalisisRows(coaId, analisis, readOnly) {
 function toggleEditAnalisis(aid) {
   const editing = document.getElementById('nombre-inp-' + aid).style.display !== 'none';
   // Toggle between view and edit mode
-  ['nombre','min','max'].forEach(function(field) {
+  ['nombre','min','max','coa'].forEach(function(field) {
     var txt = document.getElementById(field + '-txt-' + aid);
     var inp = document.getElementById(field + '-inp-' + aid);
     if (!txt || !inp) return;
@@ -1353,6 +1363,8 @@ function toggleEditAnalisis(aid) {
       inp.style.display = '';
     }
   });
+  var coaTxt = document.getElementById('coa-txt-' + aid);
+  if (coaTxt && !coaTxt.textContent.trim()) coaTxt.textContent = '(igual al nombre técnico)';
   // Update the result input data-min/data-max
   var resInput = document.querySelector('input[data-aid="' + aid + '"][data-min]');
   if (resInput) {
@@ -1589,7 +1601,7 @@ function toggleAllMuestras(cb) {
 
 async function modalAgregarMuestras(coaId) {
   // Get current analisis list for this COA
-  var res = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?select=id,nombre,minimo,maximo,es_personalizado&certificado_id=eq.' + encodeURIComponent(coaId) + '&order=orden.asc', {
+  var res = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados?select=id,nombre,nombre_coa,minimo,maximo,es_personalizado&certificado_id=eq.' + encodeURIComponent(coaId) + '&order=orden.asc', {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
   });
   var analisis = await res.json() || [];
@@ -1612,7 +1624,7 @@ async function modalAgregarMuestras(coaId) {
   // Build checkboxes for selecting which analisis to replicate
   var checksHtml = analisis.map(function(a) {
     return '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:pointer">'
-      + '<input type="checkbox" class="ms-check" data-id="' + a.id + '" data-nombre="' + (a.nombre||'').replace(/"/g,'&quot;') + '" data-min="' + (a.minimo||'') + '" data-max="' + (a.maximo||'') + '" checked>'
+      + '<input type="checkbox" class="ms-check" data-id="' + a.id + '" data-nombre="' + (a.nombre||'').replace(/"/g,'&quot;') + '" data-coa="' + (a.nombre_coa||'').replace(/"/g,'&quot;') + '" data-min="' + (a.minimo||'') + '" data-max="' + (a.maximo||'') + '" checked>'
       + '<span>' + (a.nombre||'') + '</span></label>';
   }).join('');
 
@@ -1679,13 +1691,18 @@ async function ejecutarAgregarMuestras(coaId) {
       // Also remove trailing standalone number (e.g. "Humedad KF (%) 1" → "Humedad KF (%)")
       baseNombre = baseNombre.replace(/\s+\d+$/, '').trim();
       var nombre = baseNombre + ' ' + prefijo + ' ' + n;
+      var nombreCoa = null;
+      if (cb.dataset.coa) {
+        var baseCoa = cb.dataset.coa.replace(/\s+[A-Za-zÀ-ÿ]+\s+\d+$/, '').replace(/\s+\d+$/, '').trim();
+        nombreCoa = baseCoa + ' ' + prefijo + ' ' + n;
+      }
       var minimo = cb.dataset.min || '';
       var maximo = cb.dataset.max || '';
 
       var resIns = await fetch(SUPABASE_URL + '/rest/v1/analisis_resultados', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=representation' },
-        body: JSON.stringify({ certificado_id: coaId, orden: nextOrden, nombre: nombre, minimo: minimo, maximo: maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: true })
+        body: JSON.stringify({ certificado_id: coaId, orden: nextOrden, nombre: nombre, nombre_coa: nombreCoa, minimo: minimo, maximo: maximo, resultado: '', estado: 'PENDIENTE', es_personalizado: true })
       });
       var insData = await resIns.json();
       var nuevo = Array.isArray(insData) ? insData[0] : insData;
@@ -1870,7 +1887,7 @@ async function iniciarReformulacion(origId) {
       body: JSON.stringify({ id: newId, laboratorio_id: orig.laboratorio_id, producto: orig.producto, lote: orig.lote, cantidad: orig.cantidad, cliente: orig.cliente, operador: orig.operador, motivo: 'REFORMULACIÓN', otro_motivo: `Ref. ${origId}`, estado: 'EN PROCESO', reformulacion_de: origId })
     });
     const nuevosAnalisis = analisis.map(a => ({
-      certificado_id: newId, orden: a.orden, nombre: a.nombre,
+      certificado_id: newId, orden: a.orden, nombre: a.nombre, nombre_coa: a.nombre_coa || null,
       minimo: a.minimo, maximo: a.maximo,
       resultado: a.estado === 'DESAPROBADO' ? '' : a.resultado,
       estado: a.estado === 'DESAPROBADO' ? 'PENDIENTE' : a.estado,
@@ -2024,8 +2041,10 @@ function addBloque() {
   var div = document.createElement('div');
   div.className = 'analisis-bloque';
   div.dataset.idx = count;
-  var html = '<div class="form-row"><div class="fg"><label>Análisis</label>';
+  var html = '<div class="form-row"><div class="fg"><label>Análisis (nombre técnico · lo ven las técnicas)</label>';
   html += '<input type="text" class="g-nombre" placeholder="Ej: pH (unidad)" maxlength="500"></div></div>';
+  html += '<div class="form-row"><div class="fg"><label>Nombre en el COA <span style="font-weight:400;color:var(--text2);text-transform:none">(opcional)</span></label>';
+  html += '<input type="text" class="g-nombre-coa" placeholder="Ej: Materia Activa % (PM:444)" maxlength="500"></div></div>';
   html += '<div class="form-row triple">';
   html += '<div class="fg"><label>Mínimo</label><input type="text" class="g-min" placeholder="Ej: 6.5 o N/A" maxlength="200"></div>';
   html += '<div class="fg"><label>Máximo</label><input type="text" class="g-max" placeholder="Ej: 7.5 (opcional)" maxlength="200"></div>';
@@ -2071,6 +2090,28 @@ function actualizarBotonesDel() {
   bloques.forEach(b => { const del = b.querySelector('.g-del'); if (del) del.style.display = bloques.length > 1 ? 'inline-flex' : 'none'; });
 }
 
+// Reglas de armonización del nombre que sale en el COA (mismas que coa_nombre() en SQL).
+// Devuelve null si no hay regla: en ese caso el COA imprime el nombre técnico.
+function coaNombreAuto(n) {
+  var t = String(n || '').trim();
+  if (!t) return null;
+  var mSuf = t.match(/\s+((?:IBC|Tambor|Muestra|Cisterna|Cist\.?|Lote)\s*\d+)\s*$/i);
+  var sfx = mSuf ? ' ' + mSuf[1] : '';
+  var t2 = t.replace(/\s+(?:IBC|Tambor|Muestra|Cisterna|Cist\.?|Lote)\s*\d+\s*$/i, '');
+  if (/^[iíÍ]ndice\s+amino/i.test(t2)) return 'Índice amino' + sfx;
+  if (/^%?\s*materia\s+act/i.test(t2)) {
+    var pm = t2.match(/\bPM\D{0,10}(\d+(?:[.,]\d+)?)/i);
+    if (!pm) return null;
+    return 'Materia Activa % (PM:' + pm[1] + ')' + sfx;
+  }
+  if (/^p\s*h\s*\(?\s*(al\s+)?\d+([.,]\d+)?\s*%/i.test(t2)) {
+    if (/(ipa|50\/50|concentrado|emulsionante|caldo|soluci[oó]n|alcohol|etanol|\bcc\b)/i.test(t2)) return null;
+    var pc = t2.match(/^p\s*h\s*\(?\s*(?:al\s+)?(\d+(?:[.,]\d+)?)\s*%/i);
+    return 'pH (' + pc[1].replace('.', ',') + '% en agua destilada)' + sfx;
+  }
+  return null;
+}
+
 async function guardarParametros() {
   const producto = document.getElementById('g-producto').value.trim().toUpperCase();
   if (!producto) { toast('Ingrese el nombre del producto', 'err'); return; }
@@ -2082,11 +2123,27 @@ async function guardarParametros() {
     var maximo  = b.querySelector('.g-max')    ? b.querySelector('.g-max').value.trim()    : '';
     var incluir = b.querySelector('.g-coa')    ? b.querySelector('.g-coa').checked         : true;
     var pid     = b.dataset.paramId || null;
+    var nombreCoa = b.querySelector('.g-nombre-coa') ? b.querySelector('.g-nombre-coa').value.trim() : '';
     if (!nombre || !minimo) return;
-    var item = { laboratorio_id: currentLab.id, producto: producto, analisis: nombre, minimo: minimo, maximo: maximo || null, incluir_en_coa: incluir };
+    // Si no se escribió nombre para el COA, se arma con las reglas de armonización
+    var item = { laboratorio_id: currentLab.id, producto: producto, analisis: nombre, nombre_coa: nombreCoa || coaNombreAuto(nombre), minimo: minimo, maximo: maximo || null, incluir_en_coa: incluir };
     if (pid) item._id = pid;
     analisis.push(item);
   });
+  // Totales de materia activa sin PM: toman el PM del producto si es uno solo
+  var _pms = {};
+  analisis.forEach(function(a) {
+    if (/^%?\s*materia\s+act/i.test(a.analisis)) {
+      var m = a.analisis.match(/\bPM\D{0,10}(\d+(?:[.,]\d+)?)/i);
+      if (m) _pms[m[1]] = true;
+    }
+  });
+  var _pmKeys = Object.keys(_pms);
+  if (_pmKeys.length === 1) {
+    analisis.forEach(function(a) {
+      if (!a.nombre_coa && /^%?\s*materia\s+act/i.test(a.analisis)) a.nombre_coa = 'Materia Activa % (PM:' + _pmKeys[0] + ')';
+    });
+  }
   if (!analisis.length) { toast('Agregue al menos un análisis con nombre y mínimo', 'err'); return; }
   showLoader('Guardando...');
   var toInsert = analisis.filter(function(a){ return !a._id; });
@@ -2354,7 +2411,7 @@ function imprimirCert() {
     var aclarCol  = mostrarAclar     ? '<td style="padding:7px 10px;font-size:9pt;color:#555;font-style:italic">' + (a.aclaracion || '') + '</td>' : '';
     var estadoCol = tipo === 'rechazo' ? '<td style="padding:7px 10px;text-align:center;font-weight:bold">' + (a.estado || '') + '</td>' : '';
     filasAnalisis += '<tr style="background:' + bg + '">'
-      + '<td style="padding:7px 10px;">' + (a.nombre || '') + '</td>'
+      + '<td style="padding:7px 10px;">' + (a.nombre_coa || a.nombre || '') + '</td>'
       + '<td style="padding:7px 10px;text-align:center;font-style:italic">' + spec + '</td>'
       + '<td style="padding:7px 10px;text-align:center;font-weight:bold">' + (a.resultado || '') + '</td>'
       + aclarCol + estadoCol + '</tr>';
@@ -2442,7 +2499,7 @@ async function enviarEmail(certId) {
   const analisis = await _emaRes.json();
   hideLoader();
   const emails = (currentLab.email_destino || '').split(',').map(e => e.trim());
-  const tablaHtml = (analisis||[]).map(a => `<tr><td>${a.nombre}</td><td style="text-align:center">${a.minimo||''} - ${a.maximo||''}</td><td style="text-align:center;font-weight:bold">${a.resultado||''}</td><td style="text-align:center;color:${a.estado==='APROBADO'?'green':'red'}">${a.estado||''}</td></tr>`).join('');
+  const tablaHtml = (analisis||[]).map(a => `<tr><td>${a.nombre_coa || a.nombre}</td><td style="text-align:center">${a.minimo||''} - ${a.maximo||''}</td><td style="text-align:center;font-weight:bold">${a.resultado||''}</td><td style="text-align:center;color:${a.estado==='APROBADO'?'green':'red'}">${a.estado||''}</td></tr>`).join('');
   const htmlBody = `<h2>Certificado de Análisis — ${cert.producto}</h2>
     <p><strong>ID:</strong> ${certId}</p><p><strong>Lote:</strong> ${cert.lote}</p>
     <p><strong>Cliente:</strong> ${cert.cliente}</p><p><strong>Estado:</strong> ${cert.estado}</p>
@@ -2631,8 +2688,10 @@ async function buscarParamsGestion() {
     div.className = 'analisis-bloque';
     div.dataset.idx = i;
     div.dataset.paramId = p.id;
-    var html = '<div class="form-row"><div class="fg"><label>Analisis</label>';
+    var html = '<div class="form-row"><div class="fg"><label>Análisis (nombre técnico · lo ven las técnicas)</label>';
     html += '<input type="text" class="g-nombre" value="' + (p.analisis||'').replace(/"/g,'&quot;') + '" maxlength="500"></div></div>';
+    html += '<div class="form-row"><div class="fg"><label>Nombre en el COA <span style="font-weight:400;color:var(--text2);text-transform:none">(opcional)</span></label>';
+    html += '<input type="text" class="g-nombre-coa" value="' + (p.nombre_coa||'').replace(/"/g,'&quot;') + '" placeholder="Ej: Materia Activa % (PM:444)" maxlength="500"></div></div>';
     html += '<div class="form-row triple">';
     html += '<div class="fg"><label>Minimo</label><input type="text" class="g-min" value="' + (p.minimo||'') + '" maxlength="200"></div>';
     html += '<div class="fg"><label>Maximo</label><input type="text" class="g-max" value="' + (p.maximo||'') + '" maxlength="200"></div>';
@@ -2884,7 +2943,7 @@ async function generarHTMLEditor() {
       else if (!sinLim2(a.maximo)) { spec = esN2(a.maximo) ? 'Máx. '+a.maximo : a.maximo; }
       const bg = i%2===0?'background:transparent':'background:#f9f9f9';
       return `<tr style="${bg}">
-        <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre}</td>
+        <td style="padding:8px 12px;border:1px solid #ccc;font-weight:500">${a.nombre_coa || a.nombre}</td>
         <td style="padding:8px;border:1px solid #ccc;text-align:center;font-family:monospace">${spec}</td>
         <td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold">${a.resultado||''}</td>
         ${mostrarAclar?`<td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:11px">${a.aclaracion||''}</td>`:''}
